@@ -1,7 +1,28 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function NavBar() {
+  type User = {
+    name: string;
+    srn: string;
+  } | null;
+  const [user, setUser] = useState<User>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    fetch("/api/auth/me", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        setUser(data.user);
+        setLoading(false);
+      });
+  }, []);
+
   return (
     <div
       className="relative flex justify-center
@@ -41,24 +62,32 @@ export default function NavBar() {
           <Link href="/"> PES Events</Link>
         </div>
 
-        <Link href="/login">
-          <button
-            className="rounded-full
-        px-4 sm:px-6
-        py-2 sm:py-2.5
-        text-xs sm:text-sm
-        font-semibold
-        text-white
-        bg-purple-600/90
-        shadow-[0_0_20px_rgba(168,85,247,0.45)]
-        hover:bg-purple-500
-        hover:shadow-[0_0_28px_rgba(168,85,247,0.7)]
-        transition-all duration-200
-        cursor-pointer"
-          >
-            Sign in
-          </button>
-        </Link>
+        {loading ? null : user ? (
+          <Link href="/dashboard">
+            <button
+              className="rounded-full
+    px-4 sm:px-6
+    py-2 sm:py-2.5
+    text-xs sm:text-sm
+    font-semibold
+    text-white
+    bg-purple-600/90
+    shadow-[0_0_20px_rgba(168,85,247,0.45)]
+    hover:bg-purple-500
+    hover:shadow-[0_0_28px_rgba(168,85,247,0.7)]
+    transition-all duration-200
+    cursor-pointer"
+            >
+              Welcome, <span className="text-purple-200">{user.name}</span>
+            </button>
+          </Link>
+        ) : (
+          <Link href="/login">
+            <button className="rounded-full px-4 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-white bg-purple-600/90 shadow-[0_0_20px_rgba(168,85,247,0.45)] hover:bg-purple-500 hover:shadow-[0_0_28px_rgba(168,85,247,0.7)] transition-all duration-200 cursor-pointer">
+              Sign in
+            </button>
+          </Link>
+        )}
       </div>
     </div>
   );

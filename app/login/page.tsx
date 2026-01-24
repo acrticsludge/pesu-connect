@@ -1,6 +1,37 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+
 export default function LoginPage() {
+  const router = useRouter();
+
+  const [srn, setSrn] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ srn, password }),
+    });
+
+    if (res.ok) {
+      window.location.href = "/";
+    } else {
+      const data = await res.json();
+      setError(data.error || "Login failed");
+    }
+
+    setLoading(false);
+  }
+
   return (
     <div className="flex flex-col items-center justify-center h-[calc(100vh-6rem)] px-4">
       <div className="w-full max-w-md border border-white/10 rounded-lg p-6 bg-[#0A0A0A]/50 backdrop-blur-sm">
@@ -13,7 +44,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <form className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label
               htmlFor="srn"
@@ -22,11 +53,12 @@ export default function LoginPage() {
               SRN
             </label>
             <input
-              type="text"
               id="srn"
-              name="srn"
+              type="text"
               required
-              className="w-full px-4 py-3 bg-[#0A0A0A] border border-white/10 rounded-lg text-white placeholder-[#A3A3A3] focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent"
+              value={srn}
+              onChange={(e) => setSrn(e.target.value)}
+              className="w-full px-4 py-3 bg-[#0A0A0A] border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-[#7C3AED]"
               placeholder="Enter your SRN"
             />
           </div>
@@ -39,20 +71,24 @@ export default function LoginPage() {
               Password
             </label>
             <input
-              type="password"
               id="password"
-              name="password"
+              type="password"
               required
-              className="w-full px-4 py-3 bg-[#0A0A0A] border border-white/10 rounded-lg text-white placeholder-[#A3A3A3] focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3 bg-[#0A0A0A] border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-[#7C3AED]"
               placeholder="Enter your password"
             />
           </div>
 
+          {error && <p className="text-sm text-red-400 text-center">{error}</p>}
+
           <button
             type="submit"
-            className="w-full px-8 py-3 bg-[#7C3AED] text-white rounded-lg font-bold text-base hover:shadow-[0_0_20px_rgba(124,58,237,0.4)] transition-shadow cursor-pointer"
+            disabled={loading}
+            className="w-full px-8 py-3 bg-[#7C3AED] text-white rounded-lg font-bold hover:shadow-[0_0_20px_rgba(124,58,237,0.4)] disabled:opacity-60 cursor-pointer"
           >
-            Login
+            {loading ? "Logging in..." : "Login"}
           </button>
         </form>
 
