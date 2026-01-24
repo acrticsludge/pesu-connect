@@ -5,6 +5,11 @@ export default function NavBar() {
       className="relative flex justify-center
     px-4 sm:px-6
     py-2.5 sm:py-3
+    z-50
+    top-0
+    left-0
+    right-0
+    glass-effect
     bg-black/30 backdrop-blur-xl
     shadow-[0_8px_24px_-10px_rgba(168,85,247,0.45)]"
     >
