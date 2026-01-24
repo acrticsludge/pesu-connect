@@ -15,7 +15,8 @@
     "mongoose": "^9.1.5",
     "next": "16.1.4",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "tls": "^0.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
