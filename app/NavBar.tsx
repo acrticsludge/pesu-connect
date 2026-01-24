@@ -102,6 +102,7 @@ export default function NavBar() {
                 hover:bg-purple-500
                 hover:shadow-[0_0_28px_rgba(168,85,247,0.7)]
                 transition-all
+                cursor-pointer
               "
             >
               Welcome,&nbsp;
@@ -122,6 +123,7 @@ export default function NavBar() {
                   hover:bg-purple-500
                   hover:shadow-[0_0_28px_rgba(168,85,247,0.7)]
                   transition-all
+                  cursor-pointer
                 "
               >
                 Sign in
