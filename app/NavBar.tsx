@@ -1,4 +1,6 @@
 import Image from "next/image";
+import Link from "next/link";
+
 export default function NavBar() {
   return (
     <div
@@ -33,15 +35,15 @@ export default function NavBar() {
           className="absolute left-1/2 -translate-x-1/2
         text-base sm:text-xl
         font-semibold tracking-wide
-        text-purple-300
-        drop-shadow-[0_0_8px_rgba(168,85,247,0.45)]
+        text-white
         cursor-pointer"
         >
-          PES Events
+          <Link href="/"> PES Events</Link>
         </div>
 
-        <button
-          className="rounded-full
+        <Link href="/login">
+          <button
+            className="rounded-full
         px-4 sm:px-6
         py-2 sm:py-2.5
         text-xs sm:text-sm
@@ -51,10 +53,12 @@ export default function NavBar() {
         shadow-[0_0_20px_rgba(168,85,247,0.45)]
         hover:bg-purple-500
         hover:shadow-[0_0_28px_rgba(168,85,247,0.7)]
-        transition-all duration-200"
-        >
-          Sign in
-        </button>
+        transition-all duration-200
+        cursor-pointer"
+          >
+            Sign in
+          </button>
+        </Link>
       </div>
     </div>
   );
