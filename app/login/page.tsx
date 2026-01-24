@@ -33,8 +33,29 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center h-[calc(100vh-6rem)] px-4">
-      <div className="w-full max-w-md border border-white/10 rounded-lg p-6 bg-[#0A0A0A]/50 backdrop-blur-sm">
+    <div
+      className="
+        min-h-[calc(100svh-6rem)]
+        flex
+        items-center
+        justify-center
+        px-4
+        py-6
+      "
+    >
+      <div
+        className="
+          w-full
+          max-w-md
+          border
+          border-white/10
+          rounded-lg
+          p-5
+          sm:p-6
+          bg-[#0A0A0A]/50
+          backdrop-blur-sm
+        "
+      >
         <div className="text-center mb-8">
           <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
             Login
@@ -58,7 +79,24 @@ export default function LoginPage() {
               required
               value={srn}
               onChange={(e) => setSrn(e.target.value)}
-              className="w-full px-4 py-3 bg-[#0A0A0A] border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-[#7C3AED]"
+              inputMode="text"
+              autoCapitalize="characters"
+              autoCorrect="off"
+              spellCheck={false}
+              className="
+                w-full
+                px-4
+                py-3
+                text-base
+                bg-[#0A0A0A]
+                border
+                border-white/10
+                rounded-lg
+                text-white
+                focus:outline-none
+                focus:ring-2
+                focus:ring-[#7C3AED]
+              "
               placeholder="Enter your SRN"
             />
           </div>
@@ -76,7 +114,22 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-[#0A0A0A] border border-white/10 rounded-lg text-white focus:ring-2 focus:ring-[#7C3AED]"
+              autoComplete="current-password"
+              enterKeyHint="done"
+              className="
+                w-full
+                px-4
+                py-3
+                text-base
+                bg-[#0A0A0A]
+                border
+                border-white/10
+                rounded-lg
+                text-white
+                focus:outline-none
+                focus:ring-2
+                focus:ring-[#7C3AED]
+              "
               placeholder="Enter your password"
             />
           </div>
@@ -86,7 +139,18 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full px-8 py-3 bg-[#7C3AED] text-white rounded-lg font-bold hover:shadow-[0_0_20px_rgba(124,58,237,0.4)] disabled:opacity-60 cursor-pointer"
+            className="
+              w-full
+              px-8
+              py-3
+              bg-[#7C3AED]
+              text-white
+              rounded-lg
+              font-bold
+              hover:shadow-[0_0_20px_rgba(124,58,237,0.4)]
+              disabled:opacity-60
+              transition
+            "
           >
             {loading ? "Logging in..." : "Login"}
           </button>
