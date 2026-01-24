@@ -9,6 +9,7 @@ export async function POST(req: Request) {
 
   const pesuRes = await fetch("https://pesu-auth.onrender.com/authenticate", {
     method: "POST",
+    credentials: "include",
     headers: {
       accept: "application/json",
       "Content-Type": "application/json",
@@ -57,7 +58,7 @@ export async function POST(req: Request) {
     serialize("auth_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "lax",
       path: "/",
       maxAge: 60 * 60 * 24 * 7,
     }),
