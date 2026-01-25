@@ -18,9 +18,12 @@ function ActionBtn({ label, onClick }: ActionBtnProps) {
   );
 }
 
-function AdminBtn({ label }: { label: string }) {
+function AdminBtn({ label, onClick }: { label: string; onClick?: () => void }) {
   return (
-    <button className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:shadow-[0_0_20px_rgba(220,38,38,0.4)] transition-shadow cursor-pointer">
+    <button
+      onClick={onClick}
+      className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:shadow-[0_0_20px_rgba(220,38,38,0.4)] transition-shadow cursor-pointer"
+    >
       {label}
     </button>
   );
@@ -80,7 +83,10 @@ export default function DashboardClient({
           <div className="flex gap-3 flex-wrap">
             <AdminBtn label="Manage Users" />
             <AdminBtn label="Manage Clubs" />
-            <AdminBtn label="Manage Events" />
+            <AdminBtn
+              label="Manage Events (Pin / Delete)"
+              onClick={() => router.push("/admin/events")}
+            />
           </div>
         </section>
       )}

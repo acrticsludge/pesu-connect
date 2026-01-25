@@ -57,6 +57,21 @@ export default function CreateEventPage() {
 
   const selectedClub = clubs.find((c) => c._id === clubId);
 
+  if (!clubId) {
+    setError("Please select a club");
+    return;
+  }
+
+  if (type === "domain" && !domain) {
+    setError("Please select a domain");
+    return;
+  }
+
+  if (!title.trim()) {
+    setError("Event title is required");
+    return;
+  }
+
   return (
     <div className="max-w-xl mx-auto p-6 space-y-5">
       <h1 className="text-xl font-semibold">Create Event</h1>
@@ -83,7 +98,7 @@ export default function CreateEventPage() {
         ))}
       </select>
 
-      {type === "domain" && selectedClub && (
+      {type === "domain" && selectedClub && selectedClub.domains.length > 0 && (
         <select
           value={domain}
           onChange={(e) => setDomain(e.target.value)}
