@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, notFound } from "next/navigation";
 import Image from "next/image";
 import { Club } from "@/lib/types/club";
+import Link from "next/dist/client/link";
 
 export default function ClubPage() {
   const { id } = useParams<{ id: string }>();
@@ -62,6 +63,9 @@ export default function ClubPage() {
   if (!club) {
     return notFound();
   }
+  function slugify(text: string) {
+    return text.toLowerCase().replace(/\s+/g, "-");
+  }
 
   return (
     <div className="relative min-h-screen">
@@ -82,6 +86,18 @@ export default function ClubPage() {
         <div className="absolute inset-0 flex items-end">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-6 w-full">
             <div className="flex flex-col gap-3">
+              <nav className="mb-4 text-sm text-[#A3A3A3]">
+                <ol className="flex flex-wrap items-center gap-2">
+                  <li>
+                    <Link href="/clubs" className="hover:text-white">
+                      Clubs
+                    </Link>
+                  </li>
+                  <span>›</span>
+                  <li className="text-white font-medium">{club.name}</li>
+                </ol>
+              </nav>
+
               <h1 className="text-2xl sm:text-4xl font-extrabold text-white">
                 {club.name}
               </h1>
@@ -131,7 +147,12 @@ export default function ClubPage() {
                     className="rounded-xl border border-white/10 bg-white/5 backdrop-blur p-4"
                   >
                     <h3 className="font-semibold text-white mb-1">
-                      {domain.name}
+                      <Link
+                        href={`/clubs/${club._id}/${slugify(domain.name)}`}
+                        className="hover:text-purple-400 hover:underline"
+                      >
+                        {domain.name}
+                      </Link>
                     </h3>
 
                     {domain.description && (
