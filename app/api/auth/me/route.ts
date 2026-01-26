@@ -12,8 +12,8 @@ export async function GET() {
   if (!payload) return NextResponse.json({ user: null });
 
   await connectDB();
-  const user = await User.findById(payload.sub).select("name srn");
 
+  const user = await User.findById(payload.sub).select("name srn email role");
   if (!user) return NextResponse.json({ user: null });
 
   return NextResponse.json({
@@ -21,6 +21,7 @@ export async function GET() {
       name: user.name,
       srn: user.srn,
       email: user.email,
+      role: user.role,
     },
   });
 }
