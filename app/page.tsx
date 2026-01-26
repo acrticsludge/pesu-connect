@@ -24,6 +24,11 @@ export default function Home() {
       ? events
       : events.filter((e) => e.tags.includes(activeFilter));
 
+  const sortedClubs = [...clubs].sort((a, b) => {
+    if (a.isRecruiting === b.isRecruiting) return 0;
+    return a.isRecruiting ? -1 : 1;
+  });
+
   useEffect(() => {
     fetch("/api/events")
       .then((res) => res.json())
@@ -153,14 +158,14 @@ export default function Home() {
 
           <div
             ref={eventsScrollRef}
-            className="flex gap-4 overflow-x-auto overflow-y-visible scroll-smooth snap-x snap-mandatory py-8
+            className="flex items-stretch gap-4 overflow-x-auto overflow-y-visible scroll-smooth snap-x snap-mandatory py-8
             [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             {!loading &&
               filteredEvents.map((event) => (
                 <div
                   key={event._id}
-                  className="snap-start shrink-0 w-[88%] sm:w-90 lg:w-95"
+                  className="snap-start shrink-0 w-[88%] sm:w-90 lg:w-95 h-full"
                 >
                   <EventCard event={event} />
                 </div>
@@ -197,14 +202,14 @@ export default function Home() {
 
           <div
             ref={clubsScrollRef}
-            className="flex gap-4 overflow-x-auto overflow-y-visible scroll-smooth snap-x snap-mandatory py-8
+            className="flex items-stretch gap-4 overflow-x-auto overflow-y-visible scroll-smooth snap-x snap-mandatory py-8
             [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             {!clubsLoading &&
-              clubs.map((club) => (
+              sortedClubs.map((club) => (
                 <div
                   key={club._id}
-                  className="snap-start shrink-0 w-[88%] sm:w-90 lg:w-95"
+                  className="snap-start shrink-0 w-[88%] sm:w-90 lg:w-95 min-h-105 h-full"
                 >
                   <ClubCard club={club} />
                 </div>
