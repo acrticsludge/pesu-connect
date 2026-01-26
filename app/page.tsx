@@ -1,65 +1,78 @@
 "use client";
-import Image from "next/image";
-import { Event, EventTag } from "@/lib/types/event";
-import { useRef, useState, useEffect } from "react";
+
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import EventCard from "./Cards/EventCards/EventCard";
-import { Club } from "@/lib/types/club";
 import ClubCard from "./Cards/ClubCards/ClubCard";
+import { Event, EventTag } from "@/lib/types/event";
+import { Club } from "@/lib/types/club";
 
 export default function Home() {
   const upcomingRef = useRef<HTMLDivElement>(null);
   const clubRef = useRef<HTMLDivElement>(null);
+  const eventsScrollRef = useRef<HTMLDivElement>(null);
+  const clubsScrollRef = useRef<HTMLDivElement>(null);
 
   const [events, setEvents] = useState<Event[]>([]);
+  const [clubs, setClubs] = useState<Club[]>([]);
   const [activeFilter, setActiveFilter] = useState<EventTag | "all">("all");
   const [loading, setLoading] = useState(true);
-
-  const [clubs, setClubs] = useState<Club[]>([]);
   const [clubsLoading, setClubsLoading] = useState(true);
 
   const filteredEvents =
     activeFilter === "all"
       ? events
-      : events.filter((event) => event.tags.includes(activeFilter));
+      : events.filter((e) => e.tags.includes(activeFilter));
 
   useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const res = await fetch("/api/events");
-        const data: Event[] = await res.json();
-        setEvents(data);
-      } finally {
-        setLoading(false);
-      }
-    };
+    fetch("/api/events")
+      .then((res) => res.json())
+      .then(setEvents)
+      .finally(() => setLoading(false));
 
-    const fetchClubs = async () => {
-      try {
-        const res = await fetch("/api/clubs");
-        const data: Club[] = await res.json();
-        setClubs(data);
-      } finally {
-        setClubsLoading(false);
-      }
-    };
-
-    fetchClubs();
-    fetchEvents();
+    fetch("/api/clubs")
+      .then((res) => res.json())
+      .then(setClubs)
+      .finally(() => setClubsLoading(false));
   }, []);
 
-  const scrollToUpcoming = () => {
-    upcomingRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
+  const scrollBy = (
+    ref: React.RefObject<HTMLDivElement | null>,
+    offset: number,
+  ) => {
+    if (!ref.current) return;
+    ref.current.scrollBy({ left: offset, behavior: "smooth" });
   };
 
-  const scrollToClubs = () => {
-    clubRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
+  const enableDragScroll = (ref: React.RefObject<HTMLDivElement | null>) => {
+    const el = ref.current;
+    if (!el) return;
+
+    let isDown = false;
+    let startX = 0;
+    let scrollLeft = 0;
+
+    el.onmousedown = (e) => {
+      isDown = true;
+      startX = e.pageX - el.offsetLeft;
+      scrollLeft = el.scrollLeft;
+    };
+
+    el.onmouseleave = () => (isDown = false);
+    el.onmouseup = () => (isDown = false);
+
+    el.onmousemove = (e) => {
+      if (!isDown) return;
+      e.preventDefault();
+      const x = e.pageX - el.offsetLeft;
+      el.scrollLeft = scrollLeft - (x - startX) * 1.2;
+    };
   };
+
+  useEffect(() => {
+    enableDragScroll(eventsScrollRef);
+    enableDragScroll(clubsScrollRef);
+  }, []);
 
   return (
     <div>
@@ -68,115 +81,142 @@ export default function Home() {
           PES University Events Portal
         </span>
 
-        <div className="flex flex-col items-center">
-          <div className="text-3xl sm:text-5xl lg:text-7xl font-bold text-white leading-tight">
-            Discover Campus
-          </div>
-          <div className="text-3xl sm:text-5xl lg:text-7xl font-bold text-[#7C3AED] leading-tight mb-6">
-            Events &amp; Activities
-          </div>
+        <div className="text-3xl sm:text-5xl lg:text-7xl font-bold text-white">
+          Discover Campus
+        </div>
+        <div className="text-3xl sm:text-5xl lg:text-7xl font-bold text-[#7C3AED] mb-6">
+          Events & Activities
         </div>
 
         <p className="text-sm sm:text-lg text-[#A3A3A3] max-w-3xl mx-auto mb-8 sm:mb-10">
           Stay updated with all college events, club activities, and
-          competitions in one place. Never miss out on what&apos;s happening at
-          PES.
+          competitions in one place.
         </p>
+
         <div className="flex gap-2">
           <button
-            onClick={scrollToUpcoming}
-            className="px-7 py-3 bg-[#7C3AED] text-white rounded-full font-bold text-sm sm:text-lg transition-shadow active:scale-[0.97] cursor-pointer"
+            onClick={() =>
+              upcomingRef.current?.scrollIntoView({ behavior: "smooth" })
+            }
+            className="px-7 py-3 bg-[#7C3AED] text-white rounded-full font-bold text-sm sm:text-lg active:scale-[0.97]"
           >
             Events
           </button>
           <button
-            onClick={scrollToClubs}
-            className="px-7 py-3 bg-[#7C3AED] text-white rounded-full font-bold text-sm sm:text-lg transition-shadow active:scale-[0.97] cursor-pointer"
+            onClick={() =>
+              clubRef.current?.scrollIntoView({ behavior: "smooth" })
+            }
+            className="px-7 py-3 bg-[#7C3AED] text-white rounded-full font-bold text-sm sm:text-lg active:scale-[0.97]"
           >
             Clubs
           </button>
         </div>
       </div>
 
-      <div ref={upcomingRef} className="py-10 sm:py-16 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col gap-4 mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white text-center sm:text-left">
-              Upcoming Events
-            </h2>
-            <p className="text-sm sm:text-base text-[#A3A3A3] max-w-2xl">
-              Stay on top of technical, cultural, and sports events happening
-              across campus.
-            </p>
+      <div ref={upcomingRef} className="py-10 sm:py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 mb-6">
+          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+            Upcoming Events
+          </h2>
 
-            <div className="flex gap-2 overflow-x-auto pb-2 sm:flex-wrap sm:justify-end">
-              {(["all", "technical", "cultural", "sports"] as const).map(
-                (filter) => (
-                  <button
-                    key={filter}
-                    onClick={() => setActiveFilter(filter)}
-                    className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all
-                      ${
-                        activeFilter === filter
-                          ? "bg-[#7C3AED] text-white"
-                          : "bg-[#0A0A0A] border border-white/10 text-[#A3A3A3]"
-                      }`}
-                  >
-                    {filter === "all"
-                      ? "All Events"
-                      : filter.charAt(0).toUpperCase() + filter.slice(1)}
-                  </button>
-                ),
-              )}
-            </div>
+          <div className="flex gap-2 pb-3 overflow-x-auto sm:overflow-visible flex-nowrap sm:flex-wrap sm:justify-end">
+            {(["all", "technical", "cultural", "sports"] as const).map(
+              (filter) => (
+                <button
+                  key={filter}
+                  onClick={() => setActiveFilter(filter)}
+                  className={`px-4 py-2 rounded-full text-sm shrink-0 ${
+                    activeFilter === filter
+                      ? "bg-[#7C3AED] text-white"
+                      : "bg-[#0A0A0A] border border-white/10 text-[#A3A3A3]"
+                  }`}
+                >
+                  {filter === "all"
+                    ? "All Events"
+                    : filter.charAt(0).toUpperCase() + filter.slice(1)}
+                </button>
+              ),
+            )}
+          </div>
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="absolute left-0 top-0 bottom-0 w-12 bg-linear-to-r from-black to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-12 bg-linear-to-l from-black to-transparent z-10 pointer-events-none" />
+
+          <button
+            onClick={() => scrollBy(eventsScrollRef, -400)}
+            className="hidden sm:flex absolute -left-5 top-1/2 -translate-y-1/2 z-20 h-10 w-10 items-center justify-center rounded-full bg-black/70 text-white"
+          >
+            ‹
+          </button>
+
+          <div
+            ref={eventsScrollRef}
+            className="flex gap-4 overflow-x-auto overflow-y-visible scroll-smooth snap-x snap-mandatory py-8
+            [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {!loading &&
+              filteredEvents.map((event) => (
+                <div
+                  key={event._id}
+                  className="snap-start shrink-0 w-[88%] sm:w-90 lg:w-95"
+                >
+                  <EventCard event={event} />
+                </div>
+              ))}
           </div>
 
-          {loading ? (
-            <div className="text-center py-16 text-[#A3A3A3]">
-              Loading events...
-            </div>
-          ) : filteredEvents.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="text-sm sm:text-xl text-[#A3A3A3]">
-                No events found in this category.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-              {filteredEvents.map((event) => (
-                <EventCard key={event._id} event={event} />
-              ))}
-            </div>
-          )}
+          <button
+            onClick={() => scrollBy(eventsScrollRef, 400)}
+            className="hidden sm:flex absolute -right-5 top-1/2 -translate-y-1/2 z-20 h-10 w-10 items-center justify-center rounded-full bg-black/70 text-white"
+          >
+            ›
+          </button>
         </div>
       </div>
-      <div ref={clubRef} className="py-10 sm:py-16 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col gap-4 mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white text-center sm:text-left">
-              Clubs
-            </h2>
-            <p className="text-sm sm:text-base text-[#A3A3A3] max-w-2xl">
-              Explore student clubs, their domains, and what they work on across
-              campus.
-            </p>
+
+      <div ref={clubRef} className="py-10 sm:py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 mb-6 flex items-center justify-between">
+          <h2 className="text-2xl sm:text-3xl font-bold text-white">Clubs</h2>
+          <Link href="/clubs" className="text-sm text-purple-400">
+            View all
+          </Link>
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="absolute left-0 top-0 bottom-0 w-12 bg-linear-to-r from-black to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-12 bg-linear-to-l from-black to-transparent z-10 pointer-events-none" />
+
+          <button
+            onClick={() => scrollBy(clubsScrollRef, -400)}
+            className="hidden sm:flex absolute -left-5 top-1/2 -translate-y-1/2 z-20 h-10 w-10 items-center justify-center rounded-full bg-black/70 text-white"
+          >
+            ‹
+          </button>
+
+          <div
+            ref={clubsScrollRef}
+            className="flex gap-4 overflow-x-auto overflow-y-visible scroll-smooth snap-x snap-mandatory py-8
+            [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {!clubsLoading &&
+              clubs.map((club) => (
+                <div
+                  key={club._id}
+                  className="snap-start shrink-0 w-[88%] sm:w-90 lg:w-95"
+                >
+                  <ClubCard club={club} />
+                </div>
+              ))}
           </div>
 
-          {clubsLoading ? (
-            <div className="text-center py-16 text-[#A3A3A3]">
-              Loading clubs...
-            </div>
-          ) : clubs.length === 0 ? (
-            <div className="text-center py-16 text-[#A3A3A3]">
-              No clubs available.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-              {clubs.map((club) => (
-                <ClubCard key={club._id} club={club} />
-              ))}
-            </div>
-          )}
+          <button
+            onClick={() => scrollBy(clubsScrollRef, 400)}
+            className="hidden sm:flex absolute -right-5 top-1/2 -translate-y-1/2 z-20 h-10 w-10 items-center justify-center rounded-full bg-black/70 text-white"
+          >
+            ›
+          </button>
         </div>
       </div>
     </div>
