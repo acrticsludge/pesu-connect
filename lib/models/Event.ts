@@ -57,6 +57,11 @@ const EventSchema = new Schema(
       },
     },
 
+    domains: {
+      type: [String],
+      default: [],
+    },
+
     tags: {
       type: [String],
       enum: ["technical", "cultural", "sports"],

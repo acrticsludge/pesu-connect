@@ -16,9 +16,6 @@ export type DomainRank = {
 export type ClubDomain = {
   name: string;
   description?: string;
-
-  ranks: DomainRank[];
-
   domainLeads: ClubMemberRef[];
   members: ClubMemberRef[];
 };
@@ -35,26 +32,17 @@ export type ClubBanner = {
 
 export type Club = {
   _id: string;
-
   name: string;
+  slug: string;
   shortDescription?: string;
   fullDescription?: string;
-
   foundedOn: string;
-
   banner?: ClubBanner;
   instagram?: string;
-
-  isRecruiting: boolean;
-  recruitingLink?: string;
-
   ranks: ClubRank[];
-
   clubLeads: ClubMemberRef[];
   domains: ClubDomain[];
-
   staffCoordinator?: StaffCoordinator;
-
   createdAt: string;
   updatedAt: string;
 };

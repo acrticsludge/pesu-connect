@@ -17,25 +17,19 @@ export type BannerImage = {
 
 export type Event = {
   _id: string;
-
   title: string;
   shortDescription: string;
   description: string;
-
   registrationDeadline: string;
   eventDate: string;
   venue: string;
-
   campus: Campus;
   club: Club;
-
+  domains: string[];
   tags: EventTag[];
-
   isPinned: boolean;
   isActive: boolean;
-
   bannerImage: BannerImage;
-
   createdAt: string;
   updatedAt: string;
 };

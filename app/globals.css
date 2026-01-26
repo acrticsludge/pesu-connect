@@ -24,3 +24,114 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Custom Input Styles */
+.input {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 12px;
+  background-color: #0a0a0a;
+  color: white;
+  font-size: 14px;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.input:focus {
+  outline: none;
+  border-color: rgba(124, 58, 237, 0.5);
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
+}
+
+.input::placeholder {
+  color: #a3a3a3;
+}
+
+/* Select styles */
+select.input {
+  cursor: pointer;
+}
+
+/* Textarea styles */
+textarea.input {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* Calendar Dark Theme */
+.rdp {
+  --rdp-cell-size: 32px;
+  --rdp-accent-color: #7c3aed;
+  --rdp-background-color: #0a0a0a;
+  --rdp-accent-color-dark: #7c3aed;
+  --rdp-background-color-dark: #0a0a0a;
+}
+
+.rdp-months {
+  color: white;
+}
+
+.rdp-month_caption {
+  color: white;
+}
+
+.rdp-weekday {
+  color: #a3a3a3;
+}
+
+.rdp-day {
+  color: white;
+}
+
+.rdp-day_button {
+  background: none;
+  border: none;
+  color: white;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.rdp-day_button:hover {
+  background-color: rgba(124, 58, 237, 0.2);
+}
+
+.rdp-day_button[data-selected] {
+  background-color: #7c3aed;
+  color: white;
+}
+
+.rdp-day_button[data-today] {
+  background-color: rgba(124, 58, 237, 0.1);
+}
+
+.rdp-nav_button {
+  color: white;
+  background: none;
+  border: none;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.rdp-nav_button:hover {
+  background-color: rgba(124, 58, 237, 0.2);
+}
+
+.rdp-dropdown {
+  background-color: #0a0a0a;
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.rdp-dropdown option {
+  background-color: #0a0a0a;
+  color: white;
+}
