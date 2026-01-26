@@ -103,7 +103,7 @@ export default function Home() {
             onClick={() =>
               upcomingRef.current?.scrollIntoView({ behavior: "smooth" })
             }
-            className="px-7 py-3 bg-[#7C3AED] text-white rounded-full font-bold text-sm sm:text-lg active:scale-[0.97]"
+            className="px-7 py-3 bg-[#7C3AED] text-white rounded-full font-bold text-sm sm:text-lg active:scale-[0.97] cursor-pointer"
           >
             Events
           </button>
@@ -111,7 +111,7 @@ export default function Home() {
             onClick={() =>
               clubRef.current?.scrollIntoView({ behavior: "smooth" })
             }
-            className="px-7 py-3 bg-[#7C3AED] text-white rounded-full font-bold text-sm sm:text-lg active:scale-[0.97]"
+            className="px-7 py-3 bg-[#7C3AED] text-white rounded-full font-bold text-sm sm:text-lg active:scale-[0.97] cursor-pointer"
           >
             Clubs
           </button>
