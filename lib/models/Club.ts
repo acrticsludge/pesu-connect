@@ -8,21 +8,31 @@ const MemberRefSchema = new mongoose.Schema(
   { _id: false },
 );
 
+const RankSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    level: { type: Number, required: true },
+  },
+  { _id: false },
+);
+
+const DomainRankSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    level: { type: Number, required: true },
+  },
+  { _id: false },
+);
+
 const DomainSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     description: String,
 
+    ranks: [DomainRankSchema],
+
     domainLeads: [MemberRefSchema],
     members: [MemberRefSchema],
-  },
-  { _id: false },
-);
-
-const RankSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true },
-    level: { type: Number, required: true },
   },
   { _id: false },
 );
@@ -42,6 +52,16 @@ const ClubSchema = new mongoose.Schema(
     },
 
     instagram: String,
+
+    isRecruiting: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+
+    recruitingLink: {
+      type: String,
+    },
 
     ranks: [RankSchema],
 

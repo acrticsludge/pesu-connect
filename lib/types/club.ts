@@ -8,9 +8,16 @@ export type ClubMemberRef = {
   rank: string;
 };
 
+export type DomainRank = {
+  name: string;
+  level: number;
+};
+
 export type ClubDomain = {
   name: string;
   description?: string;
+
+  ranks: DomainRank[];
 
   domainLeads: ClubMemberRef[];
   members: ClubMemberRef[];
@@ -37,6 +44,9 @@ export type Club = {
 
   banner?: ClubBanner;
   instagram?: string;
+
+  isRecruiting: boolean;
+  recruitingLink?: string;
 
   ranks: ClubRank[];
 

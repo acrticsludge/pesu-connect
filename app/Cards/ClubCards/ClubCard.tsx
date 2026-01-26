@@ -33,7 +33,7 @@ export default function ClubCard({
         border border-white/10
         shadow-[0_8px_30px_rgba(0,0,0,0.25)]
         transition-all duration-300
-        active:scale-[0.98]             /* 📱 tap feedback */
+        active:scale-[0.98]
         md:group
         md:hover:-translate-y-1
         md:hover:shadow-[0_25px_60px_rgba(124,58,237,0.4)]
@@ -46,10 +46,25 @@ export default function ClubCard({
           src={club.banner?.url || "/placeholder-banner.png"}
           alt={club.banner?.alt || club.name}
           fill
-          priority={false}
           className="object-cover md:transition-transform md:duration-300 md:group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-black/40" />
+
+        {club.isRecruiting && (
+          <a
+            href={club.recruitingLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="absolute top-3 right-3"
+          >
+            <span className="relative inline-flex">
+              <span className="absolute inset-0 rounded-full bg-green-400/40 animate-ping" />
+              <span className="relative px-3 py-1 rounded-full text-xs font-semibold bg-green-500/20 text-green-300 border border-green-500/30 backdrop-blur">
+                Recruiting
+              </span>
+            </span>
+          </a>
+        )}
       </div>
 
       <div className="p-4 sm:p-5">

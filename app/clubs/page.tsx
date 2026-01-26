@@ -93,9 +93,7 @@ export default function ClubsPage() {
   }, []);
 
   const filteredClubs = useMemo(() => {
-    if (!debouncedQuery.trim()) return clubs;
-
-    return clubs
+    const ranked = clubs
       .map((club) => {
         let score = 0;
 
@@ -114,9 +112,15 @@ export default function ClubsPage() {
 
         return { club, score };
       })
-      .filter((item) => item.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .map((item) => item.club);
+      .filter((item) => !debouncedQuery.trim() || item.score > 0);
+
+    ranked.sort((a, b) => {
+      if (a.club.isRecruiting && !b.club.isRecruiting) return -1;
+      if (!a.club.isRecruiting && b.club.isRecruiting) return 1;
+      return b.score - a.score;
+    });
+
+    return ranked.map((item) => item.club);
   }, [debouncedQuery, clubs]);
 
   const suggestions = useMemo(() => {
