@@ -41,7 +41,7 @@ export default function ClubCard({
     >
       <div className="hidden md:block absolute inset-0 rounded-2xl bg-linear-to-br from-purple-500/25 via-pink-500/10 to-transparent opacity-0 md:group-hover:opacity-100 transition-opacity pointer-events-none" />
 
-      <div className="relative h-32 sm:h-36 md:h-40 w-full">
+      <div className="relative h-32 sm:h-36 md:h-40 w-full overflow-hidden rounded-t-2xl">
         <Image
           src={club.banner?.url || "/placeholder-banner.png"}
           alt={club.banner?.alt || club.name}
@@ -50,11 +50,13 @@ export default function ClubCard({
         />
         <div className="absolute inset-0 bg-black/40" />
 
-        {club.isRecruiting && (
-          <a
-            href={club.recruitingLink}
-            target="_blank"
-            rel="noopener noreferrer"
+        {club.isRecruiting && club.recruitingLink && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              window.open(club.recruitingLink, "_blank", "noopener,noreferrer");
+            }}
             className="absolute top-3 right-3"
           >
             <span className="relative inline-flex">
@@ -63,7 +65,7 @@ export default function ClubCard({
                 Recruiting
               </span>
             </span>
-          </a>
+          </button>
         )}
       </div>
 

@@ -200,20 +200,31 @@ export default function Home() {
             ‹
           </button>
 
-          <div
-            ref={clubsScrollRef}
-            className="flex items-stretch gap-4 overflow-x-auto overflow-y-visible scroll-smooth snap-x snap-mandatory py-8
-            [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          >
-            {!clubsLoading &&
-              sortedClubs.map((club) => (
-                <div
-                  key={club._id}
-                  className="snap-start shrink-0 w-[88%] sm:w-90 lg:w-95 min-h-105 h-full"
-                >
-                  <ClubCard club={club} />
-                </div>
-              ))}
+          <div className="overflow-hidden">
+            <div
+              ref={clubsScrollRef}
+              className="
+      flex items-stretch gap-4
+      overflow-x-auto scroll-smooth snap-x snap-mandatory
+      px-2 sm:px-4
+      py-12
+      [-ms-overflow-style:none]
+      [scrollbar-width:none]
+      [&::-webkit-scrollbar]:hidden
+    "
+            >
+              {!clubsLoading &&
+                sortedClubs.map((club) => (
+                  <div
+                    key={club._id}
+                    className="snap-start shrink-0 w-[88%] sm:w-90 lg:w-95"
+                  >
+                    <Link href={`/clubs/${club._id}`} className="block h-full">
+                      <ClubCard club={club} />
+                    </Link>
+                  </div>
+                ))}
+            </div>
           </div>
 
           <button

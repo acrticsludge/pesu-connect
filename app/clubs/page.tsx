@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import ClubCard from "../Cards/ClubCards/ClubCard";
 import { Club } from "@/lib/types/club";
+import Link from "next/link";
 
 function useDebounce<T>(value: T, delay = 250) {
   const [debounced, setDebounced] = useState(value);
@@ -213,7 +214,13 @@ export default function ClubsPage() {
       {!loading && (
         <div className="max-w-7xl mx-auto grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {filteredClubs.map((club) => (
-            <ClubCard key={club._id} club={club} query={debouncedQuery} />
+            <Link
+              key={club._id}
+              href={`/clubs/${club._id}`}
+              className="block h-full"
+            >
+              <ClubCard club={club} query={debouncedQuery} />
+            </Link>
           ))}
         </div>
       )}
