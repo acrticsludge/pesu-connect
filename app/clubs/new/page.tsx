@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -5,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 export default function AddClubPage() {
   const router = useRouter();
+  const [user, setUser] = useState<any>(null);
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -22,28 +24,37 @@ export default function AddClubPage() {
     fetch("/api/auth/me")
       .then((res) => res.json())
       .then((data) => {
-        if (!data.user || data.user.role !== "admin") {
+        if (!data.user) {
           router.replace("/");
         } else {
+          setUser(data.user);
           setLoading(false);
         }
       });
   }, [router]);
 
   const submit = async () => {
-    if (submitting) return;
+    if (submitting || !user) return;
     setSubmitting(true);
 
-    const res = await fetch("/api/clubs/create", {
+    const endpoint =
+      user.role === "admin" ? "/api/clubs/create" : "/api/club-requests";
+
+    const res = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form),
     });
 
     if (res.ok) {
-      const club = await res.json();
-      router.push(`/clubs/${club._id}`);
+      if (user.role === "admin") {
+        const club = await res.json();
+        router.push(`/clubs/${club._id}`);
+      } else {
+        router.push("/dashboard");
+      }
     }
+
     setSubmitting(false);
   };
 
@@ -121,7 +132,7 @@ export default function AddClubPage() {
           disabled={submitting}
           className="w-full mt-4 px-6 py-3 rounded-xl bg-[#7C3AED] text-white font-semibold hover:bg-[#6D28D9] transition"
         >
-          Create Club
+          {user?.role === "admin" ? "Create Club" : "Send Request"}
         </button>
       </div>
     </div>
