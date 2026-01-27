@@ -90,7 +90,7 @@ export default function EditClubPage() {
         }}
       >
         <option value="" disabled>
-          Select user
+          Select user SRN
         </option>
         {allSrns.map((s) => (
           <option key={s} value={s} className="bg-[#0f0f1a]">
@@ -106,6 +106,27 @@ export default function EditClubPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-10 space-y-12">
+      <nav className="text-sm text-white/50 mb-4">
+        <ol className="flex flex-wrap items-center gap-2">
+          <li>
+            <a href="/clubs" className="hover:text-white transition">
+              Clubs
+            </a>
+          </li>
+          <span>›</span>
+          <li>
+            <a
+              href={`/clubs/${club._id}`}
+              className="hover:text-white transition"
+            >
+              {club.name}
+            </a>
+          </li>
+          <span>›</span>
+          <li className="text-white font-medium">Edit</li>
+        </ol>
+      </nav>
+
       <h1 className="text-2xl font-bold text-white">Edit Club</h1>
 
       <section className="space-y-4">
@@ -114,14 +135,16 @@ export default function EditClubPage() {
         </h2>
 
         <input
-          className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white"
+          placeholder="Club name"
+          className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white placeholder:text-white/40"
           value={club.name}
           onChange={(e) => setClub({ ...club, name: e.target.value })}
         />
 
         <textarea
           rows={3}
-          className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white"
+          placeholder="Short description (shown on cards)"
+          className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white placeholder:text-white/40"
           value={club.shortDescription || ""}
           onChange={(e) =>
             setClub({ ...club, shortDescription: e.target.value })
@@ -130,7 +153,8 @@ export default function EditClubPage() {
 
         <textarea
           rows={5}
-          className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white"
+          placeholder="Full description (shown on club page)"
+          className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white placeholder:text-white/40"
           value={club.fullDescription || ""}
           onChange={(e) =>
             setClub({ ...club, fullDescription: e.target.value })
@@ -147,6 +171,98 @@ export default function EditClubPage() {
 
       <section className="space-y-4">
         <h2 className="text-sm uppercase tracking-wide text-purple-300">
+          Media & Links
+        </h2>
+
+        <input
+          placeholder="Banner image URL (background image)"
+          className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white placeholder:text-white/40"
+          value={club.banner?.url || ""}
+          onChange={(e) =>
+            setClub({
+              ...club,
+              banner: {
+                url: e.target.value,
+                alt: club.banner?.alt || club.name,
+              },
+            })
+          }
+        />
+
+        <input
+          placeholder="Instagram profile link"
+          className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white placeholder:text-white/40"
+          value={club.instagram || ""}
+          onChange={(e) => setClub({ ...club, instagram: e.target.value })}
+        />
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-sm uppercase tracking-wide text-purple-300">
+          Recruitment
+        </h2>
+
+        <label className="flex items-center gap-3 text-white text-sm">
+          <input
+            type="checkbox"
+            checked={club.isRecruiting}
+            onChange={(e) =>
+              setClub({ ...club, isRecruiting: e.target.checked })
+            }
+          />
+          Currently recruiting
+        </label>
+
+        {club.isRecruiting && (
+          <input
+            placeholder="Recruitment / application form link"
+            className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white placeholder:text-white/40"
+            value={club.recruitingLink || ""}
+            onChange={(e) =>
+              setClub({ ...club, recruitingLink: e.target.value })
+            }
+          />
+        )}
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-sm uppercase tracking-wide text-purple-300">
+          Staff Coordinator
+        </h2>
+
+        <input
+          placeholder="Staff coordinator name"
+          className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white placeholder:text-white/40"
+          value={club.staffCoordinator?.name || ""}
+          onChange={(e) =>
+            setClub({
+              ...club,
+              staffCoordinator: {
+                name: e.target.value,
+                department: club.staffCoordinator?.department || "",
+              },
+            })
+          }
+        />
+
+        <input
+          placeholder="Staff coordinator department"
+          className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white placeholder:text-white/40"
+          value={club.staffCoordinator?.department || ""}
+          onChange={(e) =>
+            setClub({
+              ...club,
+              staffCoordinator: {
+                name: club.staffCoordinator?.name || "",
+                department: e.target.value,
+              },
+            })
+          }
+        />
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-sm uppercase tracking-wide text-purple-300">
           Club Ranks
         </h2>
 
@@ -157,7 +273,8 @@ export default function EditClubPage() {
           >
             <div className="flex gap-2">
               <input
-                className="flex-1 rounded-lg bg-white/10 border border-white/10 px-3 py-3 text-white"
+                placeholder="Rank name"
+                className="flex-1 rounded-lg bg-white/10 border border-white/10 px-3 py-3 text-white placeholder:text-white/40"
                 value={rank.name}
                 onChange={(e) => {
                   const r = [...club.ranks];
@@ -167,7 +284,8 @@ export default function EditClubPage() {
               />
               <input
                 type="number"
-                className="w-20 rounded-lg bg-white/10 border border-white/10 px-3 py-3 text-white"
+                placeholder="Level"
+                className="w-20 rounded-lg bg-white/10 border border-white/10 px-3 py-3 text-white placeholder:text-white/40"
                 value={rank.level}
                 onChange={(e) => {
                   const r = [...club.ranks];
@@ -242,7 +360,8 @@ export default function EditClubPage() {
             className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-5"
           >
             <input
-              className="w-full rounded-lg bg-white/10 border border-white/10 px-3 py-3 text-white"
+              placeholder="Domain name"
+              className="w-full rounded-lg bg-white/10 border border-white/10 px-3 py-3 text-white placeholder:text-white/40"
               value={domain.name}
               onChange={(e) => {
                 const d = [...club.domains];
@@ -253,7 +372,8 @@ export default function EditClubPage() {
 
             <textarea
               rows={2}
-              className="w-full rounded-lg bg-white/10 border border-white/10 px-3 py-3 text-white"
+              placeholder="Domain description"
+              className="w-full rounded-lg bg-white/10 border border-white/10 px-3 py-3 text-white placeholder:text-white/40"
               value={domain.description || ""}
               onChange={(e) => {
                 const d = [...club.domains];
@@ -274,7 +394,8 @@ export default function EditClubPage() {
                 >
                   <div className="flex gap-2">
                     <input
-                      className="flex-1 rounded-lg bg-white/10 border border-white/10 px-3 py-3 text-white"
+                      placeholder="Rank name"
+                      className="flex-1 rounded-lg bg-white/10 border border-white/10 px-3 py-3 text-white placeholder:text-white/40"
                       value={rank.name}
                       onChange={(e) => {
                         const d = [...club.domains];
@@ -288,7 +409,8 @@ export default function EditClubPage() {
                     />
                     <input
                       type="number"
-                      className="w-20 rounded-lg bg-white/10 border border-white/10 px-3 py-3 text-white"
+                      placeholder="Level"
+                      className="w-20 rounded-lg bg-white/10 border border-white/10 px-3 py-3 text-white placeholder:text-white/40"
                       value={rank.level}
                       onChange={(e) => {
                         const d = [...club.domains];
