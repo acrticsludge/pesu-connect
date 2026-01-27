@@ -58,13 +58,23 @@ export default function EditClubPage() {
       alert("Recruitment form link is required");
       return;
     }
+
     setSaving(true);
-    await fetch(`/api/clubs/${id}/edit`, {
+
+    const res = await fetch(`/api/clubs/${id}/edit`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(club),
     });
+
+    const data = await res.json();
     setSaving(false);
+
+    if (!res.ok) {
+      alert(data.error || "Failed to save changes");
+      return;
+    }
+
     router.refresh();
   };
 

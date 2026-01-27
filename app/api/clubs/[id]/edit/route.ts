@@ -1,58 +1,39 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import Club from "@/lib/models/Club";
+
+function hasDuplicateLevels(ranks: any[]) {
+  const levels = ranks.map((r) => r.level);
+  return new Set(levels).size !== levels.length;
+}
+
 export async function PATCH(
   req: Request,
-  ctx: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await ctx.params;
+  const { id } = await context.params;
   const data = await req.json();
 
-  const clubLeadRank = data.ranks?.find((r: any) => r.level === 1);
-
-  const syncedClubLeads = (data.clubLeads ?? []).map((l: any) => ({
-    ...l,
-    rank: clubLeadRank ? clubLeadRank.name : l.rank,
-  }));
-
-  const syncedDomains = (data.domains ?? []).map((domain: any) => {
-    const leadRank = domain.ranks?.find((r: any) => r.level === 1);
-
-    if (!leadRank) return domain;
-
-    const domainLeads = (domain.domainLeads ?? []).map((l: any) => ({
-      ...l,
-      rank: leadRank.name,
-    }));
-
-    const leadSrns = new Set(domainLeads.map((l: any) => l.srn));
-
-    const members = (domain.members ?? []).filter(
-      (m: any) => !leadSrns.has(m.srn),
+  if (hasDuplicateLevels(data.ranks ?? [])) {
+    return NextResponse.json(
+      { error: "Duplicate club rank levels are not allowed" },
+      { status: 400 },
     );
-
-    return {
-      ...domain,
-      domainLeads,
-      members,
-    };
-  });
-
-  const updated = await Club.findByIdAndUpdate(
-    id,
-    {
-      ...data,
-      clubLeads: syncedClubLeads,
-      domains: syncedDomains,
-    },
-    { new: true },
-  );
-
-  if (!updated) {
-    return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
 
-  return NextResponse.json(updated);
+  for (const d of data.domains ?? []) {
+    if (hasDuplicateLevels(d.ranks ?? [])) {
+      return NextResponse.json(
+        {
+          error: `Duplicate rank levels in domain "${d.name}" are not allowed`,
+        },
+        { status: 400 },
+      );
+    }
+  }
+
+  await Club.findByIdAndUpdate(id, data);
+  return NextResponse.json({ ok: true });
 }
 
 export async function DELETE(
