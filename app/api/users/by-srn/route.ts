@@ -18,3 +18,9 @@ export async function POST(req: Request) {
 
   return NextResponse.json(users);
 }
+
+export async function GET() {
+  await connectDB();
+  const users = await User.find().select("srn").lean();
+  return NextResponse.json(users.map((u) => u.srn));
+}

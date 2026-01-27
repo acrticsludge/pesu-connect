@@ -1,6 +1,11 @@
-export type ClubRank = {
+type RankUserRef = {
+  srn: string;
+};
+
+type ClubRank = {
   name: string;
   level: number;
+  users: RankUserRef[];
 };
 
 export type ClubMemberRef = {

@@ -8,10 +8,18 @@ const MemberRefSchema = new mongoose.Schema(
   { _id: false },
 );
 
-const RankSchema = new mongoose.Schema(
+const RankUserRefSchema = new mongoose.Schema(
+  {
+    srn: { type: String, required: true },
+  },
+  { _id: false },
+);
+
+const ClubRankSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     level: { type: Number, required: true },
+    users: { type: [RankUserRefSchema], default: [] },
   },
   { _id: false },
 );
@@ -29,10 +37,10 @@ const DomainSchema = new mongoose.Schema(
     name: { type: String, required: true },
     description: String,
 
-    ranks: [DomainRankSchema],
+    ranks: { type: [DomainRankSchema], default: [] },
 
-    domainLeads: [MemberRefSchema],
-    members: [MemberRefSchema],
+    domainLeads: { type: [MemberRefSchema], default: [] },
+    members: { type: [MemberRefSchema], default: [] },
   },
   { _id: false },
 );
@@ -61,13 +69,16 @@ const ClubSchema = new mongoose.Schema(
 
     recruitingLink: {
       type: String,
+      required: function () {
+        return this.isRecruiting;
+      },
     },
 
-    ranks: [RankSchema],
+    ranks: { type: [ClubRankSchema], default: [] },
 
-    clubLeads: [MemberRefSchema],
+    clubLeads: { type: [MemberRefSchema], default: [] },
 
-    domains: [DomainSchema],
+    domains: { type: [DomainSchema], default: [] },
 
     staffCoordinator: {
       name: String,
