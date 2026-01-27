@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, notFound } from "next/navigation";
 import Image from "next/image";
 import { Club } from "@/lib/types/club";
-import Link from "next/dist/client/link";
+import Link from "next/link";
 
 export default function ClubPage() {
   const { id } = useParams<{ id: string }>();
@@ -12,6 +12,13 @@ export default function ClubPage() {
   const [club, setClub] = useState<Club | null>(null);
   const [userMap, setUserMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    if (club) {
+      console.log("CLUB DATA:", club);
+      console.log("CLUB RANKS:", club.ranks);
+      console.log("DOMAIN RANKS:", club.domains?.[0]?.ranks);
+    }
+  }, [club]);
 
   useEffect(() => {
     if (!id) return;
@@ -31,11 +38,15 @@ export default function ClubPage() {
 
     const srns = new Set<string>();
 
-    club.clubLeads.forEach((m) => srns.add(m.srn));
-    club.domains.forEach((d) => {
-      d.domainLeads.forEach((m) => srns.add(m.srn));
-      d.members.forEach((m) => srns.add(m.srn));
-    });
+    (club.ranks ?? []).forEach((r) =>
+      (r.users ?? []).forEach((u) => srns.add(u.srn)),
+    );
+
+    (club.domains ?? []).forEach((d) =>
+      (d.ranks ?? []).forEach((r) =>
+        (r.users ?? []).forEach((u) => srns.add(u.srn)),
+      ),
+    );
 
     if (srns.size === 0) return;
 
@@ -63,9 +74,14 @@ export default function ClubPage() {
   if (!club) {
     return notFound();
   }
+
   function slugify(text: string) {
     return text.toLowerCase().replace(/\s+/g, "-");
   }
+
+  const ranks = club.ranks ?? [];
+  const maxLevel =
+    ranks.length > 0 ? Math.max(...ranks.map((r) => r.level)) : null;
 
   return (
     <div className="relative min-h-screen">
@@ -141,7 +157,7 @@ export default function ClubPage() {
               </h2>
 
               <div className="space-y-4">
-                {club.domains.map((domain) => (
+                {(club.domains ?? []).map((domain) => (
                   <div
                     key={domain.name}
                     className="rounded-xl border border-white/10 bg-white/5 backdrop-blur p-4"
@@ -162,7 +178,7 @@ export default function ClubPage() {
                     )}
 
                     <div className="flex flex-wrap gap-2">
-                      {domain.ranks.map((rank) => (
+                      {(domain.ranks ?? []).map((rank) => (
                         <span
                           key={rank.name}
                           className="px-3 py-1 rounded-full text-xs bg-purple-500/15 border border-purple-500/30 text-purple-200"
@@ -223,51 +239,51 @@ export default function ClubPage() {
                   <h3 className="text-sm font-semibold text-purple-300 mb-2">
                     Club Leadership
                   </h3>
+
                   <div className="space-y-1">
-                    {club.clubLeads.map((lead) => (
-                      <div
-                        key={lead.srn}
-                        className="flex justify-between text-sm"
-                      >
-                        <span className="text-white">
-                          {userMap[lead.srn] ?? "Null User"}
-                        </span>
-                        <span className="text-[#A3A3A3]">{lead.rank}</span>
-                      </div>
-                    ))}
+                    {ranks
+                      .filter((r) => maxLevel !== null && r.level < maxLevel)
+                      .sort((a, b) => a.level - b.level)
+                      .flatMap((rank) =>
+                        (rank.users ?? []).map((u) => (
+                          <div
+                            key={`${rank.level}-${u.srn}`}
+                            className="flex justify-between text-sm"
+                          >
+                            <span className="text-white">
+                              {userMap[u.srn] ?? "Null User"}
+                            </span>
+                            <span className="text-[#A3A3A3]">{rank.name}</span>
+                          </div>
+                        )),
+                      )}
                   </div>
                 </div>
 
-                {club.domains.map((domain) => (
+                {(club.domains ?? []).map((domain) => (
                   <div key={domain.name}>
                     <h3 className="text-sm font-semibold text-purple-300 mb-2">
                       {domain.name}
                     </h3>
 
                     <div className="space-y-1 ml-2">
-                      {domain.domainLeads.map((lead) => (
-                        <div
-                          key={lead.srn}
-                          className="flex justify-between text-sm"
-                        >
-                          <span className="text-white">
-                            {userMap[lead.srn] ?? "Null User"}
-                          </span>
-                          <span className="text-[#A3A3A3]">{lead.rank}</span>
-                        </div>
-                      ))}
-
-                      {domain.members.map((member) => (
-                        <div
-                          key={member.srn}
-                          className="flex justify-between text-sm opacity-90"
-                        >
-                          <span className="text-white">
-                            {userMap[member.srn] ?? "Null User"}
-                          </span>
-                          <span className="text-[#A3A3A3]">{member.rank}</span>
-                        </div>
-                      ))}
+                      {(domain.ranks ?? [])
+                        .sort((a, b) => a.level - b.level)
+                        .flatMap((rank) =>
+                          (rank.users ?? []).map((u) => (
+                            <div
+                              key={`${rank.name}-${u.srn}`}
+                              className="flex justify-between text-sm"
+                            >
+                              <span className="text-white">
+                                {userMap[u.srn] ?? "Null User"}
+                              </span>
+                              <span className="text-[#A3A3A3]">
+                                {rank.name}
+                              </span>
+                            </div>
+                          )),
+                        )}
                     </div>
                   </div>
                 ))}

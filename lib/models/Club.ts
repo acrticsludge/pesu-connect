@@ -1,13 +1,5 @@
 import mongoose from "mongoose";
 
-const MemberRefSchema = new mongoose.Schema(
-  {
-    srn: { type: String, required: true },
-    rank: { type: String, required: true },
-  },
-  { _id: false },
-);
-
 const RankUserRefSchema = new mongoose.Schema(
   {
     srn: { type: String, required: true },
@@ -28,6 +20,7 @@ const DomainRankSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     level: { type: Number, required: true },
+    users: { type: [RankUserRefSchema], default: [] },
   },
   { _id: false },
 );
@@ -36,11 +29,7 @@ const DomainSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     description: String,
-
     ranks: { type: [DomainRankSchema], default: [] },
-
-    domainLeads: { type: [MemberRefSchema], default: [] },
-    members: { type: [MemberRefSchema], default: [] },
   },
   { _id: false },
 );
@@ -75,8 +64,6 @@ const ClubSchema = new mongoose.Schema(
     },
 
     ranks: { type: [ClubRankSchema], default: [] },
-
-    clubLeads: { type: [MemberRefSchema], default: [] },
 
     domains: { type: [DomainSchema], default: [] },
 

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, notFound } from "next/navigation";
 import Image from "next/image";
 import { Club } from "@/lib/types/club";
-import Link from "next/dist/client/link";
+import Link from "next/link";
 
 function slugify(text: string) {
   return text.toLowerCase().replace(/\s+/g, "-");
@@ -35,10 +35,11 @@ export default function ClubDomainPage() {
 
     const srns = new Set<string>();
 
-    club.domains.forEach((d) => {
-      d.domainLeads.forEach((m) => srns.add(m.srn));
-      d.members.forEach((m) => srns.add(m.srn));
-    });
+    (club.domains ?? []).forEach((d) =>
+      (d.ranks ?? []).forEach((r) =>
+        (r.users ?? []).forEach((u) => srns.add(u.srn)),
+      ),
+    );
 
     if (srns.size === 0) return;
 
@@ -67,11 +68,28 @@ export default function ClubDomainPage() {
     return notFound();
   }
 
-  const activeDomain = club.domains.find((d) => slugify(d.name) === domain);
+  const activeDomain = (club.domains ?? []).find(
+    (d) => slugify(d.name) === domain,
+  );
 
   if (!activeDomain) {
     return notFound();
   }
+
+  const sortedRanks = [...(activeDomain.ranks ?? [])].sort(
+    (a, b) => a.level - b.level,
+  );
+
+  const lowestLevel =
+    sortedRanks.length > 0 ? sortedRanks[sortedRanks.length - 1].level : null;
+
+  const leads = sortedRanks.filter(
+    (r) => lowestLevel !== null && r.level < lowestLevel,
+  );
+
+  const members = sortedRanks.filter(
+    (r) => lowestLevel !== null && r.level === lowestLevel,
+  );
 
   return (
     <div className="relative min-h-screen">
@@ -144,7 +162,7 @@ export default function ClubDomainPage() {
               </h2>
 
               <div className="flex flex-wrap gap-2">
-                {activeDomain.ranks.map((rank) => (
+                {(activeDomain.ranks ?? []).map((rank) => (
                   <span
                     key={rank.name}
                     className="px-3 py-1 rounded-full text-xs bg-purple-500/15 border border-purple-500/30 text-purple-200"
@@ -163,14 +181,19 @@ export default function ClubDomainPage() {
               </h2>
 
               <div className="space-y-2">
-                {(activeDomain.domainLeads ?? []).map((lead) => (
-                  <div key={lead.srn} className="flex justify-between text-sm">
-                    <span className="text-white">
-                      {userMap[lead.srn] ?? "Null User"}
-                    </span>
-                    <span className="text-[#A3A3A3]">{lead.rank}</span>
-                  </div>
-                ))}
+                {leads.flatMap((rank) =>
+                  (rank.users ?? []).map((u) => (
+                    <div
+                      key={`${rank.name}-${u.srn}`}
+                      className="flex justify-between text-sm"
+                    >
+                      <span className="text-white">
+                        {userMap[u.srn] ?? "Null User"}
+                      </span>
+                      <span className="text-[#A3A3A3]">{rank.name}</span>
+                    </div>
+                  )),
+                )}
               </div>
             </section>
 
@@ -178,17 +201,19 @@ export default function ClubDomainPage() {
               <h2 className="text-lg font-bold text-white mb-3">Members</h2>
 
               <div className="space-y-2">
-                {activeDomain.members.map((member) => (
-                  <div
-                    key={member.srn}
-                    className="flex justify-between text-sm opacity-90"
-                  >
-                    <span className="text-white">
-                      {userMap[member.srn] ?? "Null User"}
-                    </span>
-                    <span className="text-[#A3A3A3]">{member.rank}</span>
-                  </div>
-                ))}
+                {members.flatMap((rank) =>
+                  (rank.users ?? []).map((u) => (
+                    <div
+                      key={`${rank.name}-${u.srn}`}
+                      className="flex justify-between text-sm opacity-90"
+                    >
+                      <span className="text-white">
+                        {userMap[u.srn] ?? "Null User"}
+                      </span>
+                      <span className="text-[#A3A3A3]">{rank.name}</span>
+                    </div>
+                  )),
+                )}
               </div>
             </section>
           </div>

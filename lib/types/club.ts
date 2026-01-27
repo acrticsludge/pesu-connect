@@ -2,30 +2,22 @@ type RankUserRef = {
   srn: string;
 };
 
-type ClubRank = {
+export type ClubRank = {
   name: string;
   level: number;
   users: RankUserRef[];
 };
 
-export type ClubMemberRef = {
-  srn: string;
-  rank: string;
-};
-
 export type DomainRank = {
   name: string;
   level: number;
+  users: RankUserRef[];
 };
 
 export type ClubDomain = {
   name: string;
   description?: string;
-
   ranks: DomainRank[];
-
-  domainLeads: ClubMemberRef[];
-  members: ClubMemberRef[];
 };
 
 export type StaffCoordinator = {
@@ -54,8 +46,6 @@ export type Club = {
   recruitingLink?: string;
 
   ranks: ClubRank[];
-
-  clubLeads: ClubMemberRef[];
   domains: ClubDomain[];
 
   staffCoordinator?: StaffCoordinator;

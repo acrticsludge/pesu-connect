@@ -12,6 +12,7 @@ function hasDuplicateUsers(ranks: any[]) {
 
   for (const r of ranks ?? []) {
     for (const u of r.users ?? []) {
+      if (!u?.srn) continue;
       if (seen.has(u.srn)) return true;
       seen.add(u.srn);
     }
@@ -29,45 +30,90 @@ export async function PATCH(
 
   await connectDB();
 
-  if (hasDuplicateLevels(data.ranks ?? [])) {
+  // -------------------------
+  // NORMALIZE CLUB RANKS
+  // -------------------------
+  const safeRanks = (data.ranks ?? []).map((r: any, i: number) => ({
+    name: r?.name ?? "",
+    level: typeof r?.level === "number" ? r.level : i + 1,
+    users: Array.isArray(r?.users) ? r.users.filter((u: any) => u?.srn) : [],
+  }));
+
+  // -------------------------
+  // NORMALIZE DOMAINS
+  // -------------------------
+  const safeDomains = (data.domains ?? []).map((d: any) => ({
+    name: d?.name ?? "",
+    description: d?.description ?? "",
+    ranks: (d?.ranks ?? []).map((r: any, i: number) => ({
+      name: r?.name ?? "",
+      level: typeof r?.level === "number" ? r.level : i + 1,
+      users: Array.isArray(r?.users) ? r.users.filter((u: any) => u?.srn) : [],
+    })),
+  }));
+
+  // -------------------------
+  // VALIDATION
+  // -------------------------
+  if (hasDuplicateLevels(safeRanks)) {
     return NextResponse.json(
       { error: "Duplicate club rank levels are not allowed" },
       { status: 400 },
     );
   }
 
-  if (hasDuplicateUsers(data.ranks ?? [])) {
+  if (hasDuplicateUsers(safeRanks)) {
     return NextResponse.json(
       { error: "A user cannot have multiple club ranks" },
       { status: 400 },
     );
   }
 
-  for (const d of data.domains ?? []) {
-    if (hasDuplicateLevels(d.ranks ?? [])) {
+  for (const d of safeDomains) {
+    if (hasDuplicateLevels(d.ranks)) {
       return NextResponse.json(
-        {
-          error: `Duplicate rank levels in domain "${d.name}" are not allowed`,
-        },
+        { error: `Duplicate rank levels in domain "${d.name}"` },
         { status: 400 },
       );
     }
 
-    const domainSeen = new Set<string>();
-    for (const m of d.members ?? []) {
-      if (domainSeen.has(m.srn)) {
-        return NextResponse.json(
-          {
-            error: `User ${m.srn} has multiple ranks in domain "${d.name}"`,
-          },
-          { status: 400 },
-        );
-      }
-      domainSeen.add(m.srn);
+    if (hasDuplicateUsers(d.ranks)) {
+      return NextResponse.json(
+        { error: `Duplicate users in domain "${d.name}"` },
+        { status: 400 },
+      );
     }
   }
 
-  await Club.findByIdAndUpdate(id, data, { new: true });
+  // -------------------------
+  // UPDATE (FULL REPLACE)
+  // -------------------------
+  const updated = await Club.findByIdAndUpdate(
+    id,
+    {
+      $set: {
+        name: data.name,
+        shortDescription: data.shortDescription ?? "",
+        fullDescription: data.fullDescription ?? "",
+        foundedOn: data.foundedOn,
+        banner: data.banner ?? { url: "", alt: "" },
+        instagram: data.instagram ?? "",
+        isRecruiting: !!data.isRecruiting,
+        recruitingLink: data.recruitingLink ?? "",
+        staffCoordinator: data.staffCoordinator ?? {
+          name: "",
+          department: "",
+        },
+        ranks: safeRanks,
+        domains: safeDomains,
+      },
+    },
+    { runValidators: true, new: true },
+  );
+
+  if (!updated) {
+    return NextResponse.json({ error: "Club not found" }, { status: 404 });
+  }
 
   return NextResponse.json({ ok: true });
 }

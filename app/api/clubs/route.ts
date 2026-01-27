@@ -6,9 +6,27 @@ export async function GET() {
   try {
     await connectDB();
 
-    const clubs = await Club.find({}).sort({ createdAt: -1 });
+    const clubs = await Club.find({}).sort({ createdAt: -1 }).lean();
 
-    return NextResponse.json(clubs);
+    const normalized = clubs.map((club) => ({
+      ...club,
+      ranks: (club.ranks ?? []).map((r: any) => ({
+        name: r.name,
+        level: r.level,
+        users: r.users ?? [],
+      })),
+      domains: (club.domains ?? []).map((d: any) => ({
+        name: d.name,
+        description: d.description,
+        ranks: (d.ranks ?? []).map((r: any) => ({
+          name: r.name,
+          level: r.level,
+          users: r.users ?? [],
+        })),
+      })),
+    }));
+
+    return NextResponse.json(normalized);
   } catch (error) {
     console.error("Error fetching clubs:", error);
     return NextResponse.json(

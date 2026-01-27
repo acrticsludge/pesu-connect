@@ -55,12 +55,22 @@ export async function POST(req: Request) {
     foundedOn: new Date(foundedOn),
     banner: bannerUrl ? { url: bannerUrl } : undefined,
     instagram,
+    isRecruiting: false,
+
     staffCoordinator: {
       name: staffName,
       department: staffDepartment,
     },
-    ranks: [{ name: "Club Lead", level: 1 }],
-    clubLeads: [{ srn: user.srn, rank: "Club Lead" }],
+
+    ranks: [
+      {
+        name: "Club Lead",
+        level: 0,
+        users: [{ srn: user.srn }],
+      },
+    ],
+
+    domains: [],
   });
 
   return NextResponse.json(club);
