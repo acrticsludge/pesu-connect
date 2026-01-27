@@ -53,12 +53,43 @@ export default function EditClubPage() {
     return <div className="py-24 text-center text-white/60">Loading club…</div>;
   }
 
+  const validateUniqueRanks = () => {
+    const clubSeen = new Set<string>();
+
+    for (const rank of club.ranks ?? []) {
+      for (const u of rank.users ?? []) {
+        if (clubSeen.has(u.srn)) {
+          return `User ${u.srn} has multiple club ranks`;
+        }
+        clubSeen.add(u.srn);
+      }
+    }
+
+    for (const domain of club.domains ?? []) {
+      const domainSeen = new Set<string>();
+
+      for (const member of domain.members ?? []) {
+        if (domainSeen.has(member.srn)) {
+          return `User ${member.srn} has multiple ranks in ${domain.name}`;
+        }
+        domainSeen.add(member.srn);
+      }
+    }
+
+    return null;
+  };
+
   const save = async () => {
     if (club.isRecruiting && !club.recruitingLink?.trim()) {
       alert("Recruitment form link is required");
       return;
     }
 
+    const rankError = validateUniqueRanks();
+    if (rankError) {
+      alert(rankError);
+      return;
+    }
     setSaving(true);
 
     const res = await fetch(`/api/clubs/${id}/edit`, {
