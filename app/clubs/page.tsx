@@ -158,7 +158,11 @@ export default function ClubsPage() {
         <p className="mt-2 sm:mt-3 text-sm sm:text-base text-[#A3A3A3] max-w-xl mx-auto">
           Find communities that match your interests
         </p>
-
+        <Link href="/clubs/new">
+          <button className="px-7 py-3 mt-5 bg-[#7C3AED] text-white rounded-full font-bold text-sm sm:text-lg active:scale-[0.97] cursor-pointer">
+            Create Club
+          </button>
+        </Link>
         <div className="mt-5 sm:mt-6 h-px w-20 sm:w-24 mx-auto bg-linear-to-r from-transparent via-purple-500/60 to-transparent" />
       </div>
 
