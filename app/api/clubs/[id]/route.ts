@@ -10,11 +10,40 @@ export async function GET(
 
   await connectDB();
 
-  const club = await Club.findById(id);
+  const club = await Club.findById(id).lean();
+  if (!club) return NextResponse.json(null, { status: 404 });
 
-  if (!club) {
-    return NextResponse.json({ message: "Not found" }, { status: 404 });
-  }
+  club.domains = (club.domains ?? []).map((d: any) => {
+    const ranks = d.ranks ?? [];
+    const members = d.members ?? [];
 
-  return NextResponse.json(club);
+    if (ranks.length === 0) {
+      return { ...d, domainLeads: [], members };
+    }
+
+    const sortedRanks = [...ranks].sort((a: any, b: any) => a.level - b.level);
+
+    const lowestRankName = sortedRanks[sortedRanks.length - 1].name;
+
+    const domainLeads = members.filter((m: any) => m.rank !== lowestRankName);
+
+    const normalMembers = members.filter((m: any) => m.rank === lowestRankName);
+
+    return {
+      ...d,
+      domainLeads,
+      members: normalMembers,
+      ranks,
+    };
+  });
+
+  return NextResponse.json({
+    ...club,
+    domains: club.domains.map((d: any) => ({
+      ...d,
+      domainLeads: d.domainLeads ?? [],
+      members: d.members ?? [],
+      ranks: d.ranks ?? [],
+    })),
+  });
 }

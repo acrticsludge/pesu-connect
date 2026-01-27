@@ -163,7 +163,7 @@ export default function ClubDomainPage() {
               </h2>
 
               <div className="space-y-2">
-                {activeDomain.domainLeads.map((lead) => (
+                {(activeDomain.domainLeads ?? []).map((lead) => (
                   <div key={lead.srn} className="flex justify-between text-sm">
                     <span className="text-white">
                       {userMap[lead.srn] ?? "Null User"}
