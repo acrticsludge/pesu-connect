@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 export default function AddClubPage() {
   const router = useRouter();
@@ -52,7 +53,7 @@ export default function AddClubPage() {
     const data = await res.json();
 
     if (!res.ok) {
-      setError(data.message || "Something went wrong");
+      toast.error(data.message || "Something went wrong");
       setSubmitting(false);
       return;
     }

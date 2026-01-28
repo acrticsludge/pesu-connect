@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 
 type ClubRequest = {
   _id: string;
@@ -55,9 +56,14 @@ export default function DashboardPage() {
     });
 
     if (res.ok) {
-      window.location.reload();
+      toast.success("Club created successfully 🎉");
+
+      setRequests((prev) =>
+        prev.map((r) => (r._id === id ? { ...r, status: "completed" } : r)),
+      );
     } else {
-      alert("Failed to confirm club creation");
+      const data = await res.json();
+      toast.error(data.error || "Failed to confirm club creation");
     }
   };
 
@@ -83,13 +89,21 @@ export default function DashboardPage() {
   };
 
   const handleAction = async (id: string, action: "approve" | "reject") => {
-    await fetch(`/api/admin/club-requests/${id}`, {
+    const res = await fetch(`/api/admin/club-requests/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action }),
     });
 
-    setRequests((prev) => prev.filter((r) => r._id !== id));
+    if (res.ok) {
+      toast.success(
+        action === "approve" ? "Request approved" : "Request rejected",
+      );
+      setRequests((prev) => prev.filter((r) => r._id !== id));
+    } else {
+      const data = await res.json();
+      toast.error(data.error || "Action failed");
+    }
   };
 
   if (loading) {
