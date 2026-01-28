@@ -207,6 +207,7 @@ export default function EditClubPage() {
           }
           placeholder="Full description"
         />
+        <h2 className="text-sm uppercase text-purple-300">Founded on</h2>
 
         <input
           type="date"

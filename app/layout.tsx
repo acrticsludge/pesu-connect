@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PESU Connect - PES Events",
+  title: "PESU Connect - PES Events & Clubs",
   description:
     "Stay updated with all college events, club activities, and competitions in one place. Never miss out on what's happening at PES.",
 };
