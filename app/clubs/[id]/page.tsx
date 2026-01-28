@@ -3,22 +3,24 @@
 import { useEffect, useState } from "react";
 import { useParams, notFound } from "next/navigation";
 import Image from "next/image";
+import { getClubEditScope } from "@/lib/permissions/clubPermissions";
 import { Club } from "@/lib/types/club";
 import Link from "next/link";
 
 export default function ClubPage() {
   const { id } = useParams<{ id: string }>();
+  const [user, setUser] = useState<any>(null);
 
   const [club, setClub] = useState<Club | null>(null);
   const [userMap, setUserMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    if (club) {
-      console.log("CLUB DATA:", club);
-      console.log("CLUB RANKS:", club.ranks);
-      console.log("DOMAIN RANKS:", club.domains?.[0]?.ranks);
-    }
-  }, [club]);
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then(setUser)
+      .catch(() => setUser(null));
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -70,6 +72,21 @@ export default function ClubPage() {
       <div className="text-center text-[#A3A3A3] py-20">Loading club...</div>
     );
   }
+  if (!club || user === null) {
+    <div className="text-center text-[#A3A3A3] py-20">Loading club...</div>;
+  }
+
+  const actualUser = user?.user ?? null;
+
+  if (!actualUser) {
+    return (
+      <div className="py-24 text-center text-red-400">
+        You are not logged in.
+      </div>
+    );
+  }
+
+  const scope = getClubEditScope({ user: actualUser, club });
 
   if (!club) {
     return notFound();
@@ -115,7 +132,40 @@ export default function ClubPage() {
               </nav>
 
               <h1 className="text-2xl sm:text-4xl font-extrabold text-white">
-                {club.name}
+                {club.name}{" "}
+                {(scope === "ADMIN" ||
+                  scope === "CLUB" ||
+                  scope === "DOMAIN") && (
+                  <Link href={`/clubs/${club._id}/edit`}>
+                    <button
+                      className="
+    relative px-7 py-3
+    rounded-full font-bold text-sm sm:text-lg
+    text-white
+    bg-linear-to-br from-[#7C3AED] via-[#9333EA] to-[#A855F7]
+    shadow-[0_0_25px_rgba(168,85,247,0.8)]
+    border border-purple-300/40
+    transition-all duration-200
+    hover:shadow-[0_0_40px_rgba(168,85,247,1)]
+    hover:scale-[1.04]
+    active:scale-[0.97]
+    overflow-hidden
+    cursor-pointer
+  "
+                    >
+                      <span className="relative z-10">Edit Club</span>
+
+                      <span
+                        className="
+      absolute inset-0
+      bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.25),transparent)]
+      opacity-0 hover:opacity-100
+      transition-opacity
+    "
+                      />
+                    </button>
+                  </Link>
+                )}
               </h1>
 
               {club.isRecruiting && club.recruitingLink && (

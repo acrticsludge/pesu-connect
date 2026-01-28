@@ -4,14 +4,26 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Club } from "@/lib/types/club";
+import {
+  getClubEditScope,
+  getEditableDomainIndexes,
+} from "@/lib/permissions/clubPermissions";
 
 export default function EditClubPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const [user, setUser] = useState<any>(null);
 
   const [club, setClub] = useState<Club | null>(null);
   const [saving, setSaving] = useState(false);
   const [allSrns, setAllSrns] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then(setUser)
+      .catch(() => setUser(null));
+  }, []);
 
   useEffect(() => {
     fetch("/api/users/by-srn")
@@ -48,9 +60,30 @@ export default function EditClubPage() {
       );
   }, [id]);
 
-  if (!club) {
+  if (!club || !user) {
     return <div className="py-24 text-center text-white/60">Loading…</div>;
   }
+
+  const actualUser = user.user;
+
+  const scope = getClubEditScope({ user: actualUser, club });
+  const editableDomains = getEditableDomainIndexes({
+    user: actualUser,
+    club,
+  });
+
+  if (scope === "NONE") {
+    return (
+      <div className="py-24 text-center text-red-400">
+        You do not have permission to edit this club.
+      </div>
+    );
+  }
+
+  const isAdmin = scope === "ADMIN";
+  const isClubLead = scope === "CLUB";
+  const isDomainLead = scope === "DOMAIN";
+  const clubLocked = isDomainLead;
 
   const normalizeLevels = (ranks: any[]) =>
     ranks.map((r, i) => ({ ...r, level: i + 1 }));
@@ -132,15 +165,17 @@ export default function EditClubPage() {
         <h2 className="text-sm uppercase text-purple-300">Basic Information</h2>
 
         <input
-          className="w-full rounded-xl bg-white/10 px-4 py-3 text-white"
+          className="w-full rounded-xl bg-white/10 px-4 py-3 text-white disabled:opacity-50"
+          disabled={clubLocked}
           value={club.name}
           onChange={(e) => setClub({ ...club, name: e.target.value })}
           placeholder="Club name"
         />
 
         <textarea
+          disabled={clubLocked}
           rows={2}
-          className="w-full rounded-xl bg-white/10 px-4 py-3 text-white"
+          className="w-full rounded-xl bg-white/10 px-4 py-3 text-white disabled:opacity-50"
           value={club.shortDescription ?? ""}
           onChange={(e) =>
             setClub({ ...club, shortDescription: e.target.value })
@@ -149,8 +184,9 @@ export default function EditClubPage() {
         />
 
         <textarea
+          disabled={clubLocked}
           rows={4}
-          className="w-full rounded-xl bg-white/10 px-4 py-3 text-white"
+          className="w-full rounded-xl bg-white/10 px-4 py-3 text-white disabled:opacity-50"
           value={club.fullDescription ?? ""}
           onChange={(e) =>
             setClub({ ...club, fullDescription: e.target.value })
@@ -160,7 +196,8 @@ export default function EditClubPage() {
 
         <input
           type="date"
-          className="w-full rounded-xl bg-white/10 px-4 py-3 text-white"
+          disabled={clubLocked}
+          className="w-full rounded-xl bg-white/10 px-4 py-3 text-white disabled:opacity-50"
           value={club.foundedOn.slice(0, 10)}
           onChange={(e) => setClub({ ...club, foundedOn: e.target.value })}
         />
@@ -170,7 +207,8 @@ export default function EditClubPage() {
         <h2 className="text-sm uppercase text-purple-300">Media & Links</h2>
 
         <input
-          className="w-full rounded-xl bg-white/10 px-4 py-3 text-white"
+          className="w-full rounded-xl bg-white/10 px-4 py-3 text-white disabled:opacity-50"
+          disabled={clubLocked}
           value={club.banner?.url ?? ""}
           onChange={(e) =>
             setClub({
@@ -182,7 +220,8 @@ export default function EditClubPage() {
         />
 
         <input
-          className="w-full rounded-xl bg-white/10 px-4 py-3 text-white"
+          className="w-full rounded-xl bg-white/10 px-4 py-3 text-white disabled:opacity-50"
+          disabled={clubLocked}
           value={club.instagram ?? ""}
           onChange={(e) => setClub({ ...club, instagram: e.target.value })}
           placeholder="Instagram link"
@@ -192,9 +231,10 @@ export default function EditClubPage() {
       <section className="space-y-4">
         <h2 className="text-sm uppercase text-purple-300">Recruitment</h2>
 
-        <label className="flex items-center gap-3 text-white">
+        <label className="flex items-center gap-3 text-white disabled:opacity-50">
           <input
             type="checkbox"
+            disabled={clubLocked}
             checked={club.isRecruiting}
             onChange={(e) =>
               setClub({ ...club, isRecruiting: e.target.checked })
@@ -205,7 +245,8 @@ export default function EditClubPage() {
 
         {club.isRecruiting && (
           <input
-            className="w-full rounded-xl bg-white/10 px-4 py-3 text-white"
+            className="w-full rounded-xl bg-white/10 px-4 py-3 text-white disabled:opacity-50"
+            disabled={clubLocked}
             value={club.recruitingLink ?? ""}
             onChange={(e) =>
               setClub({ ...club, recruitingLink: e.target.value })
@@ -219,7 +260,8 @@ export default function EditClubPage() {
         <h2 className="text-sm uppercase text-purple-300">Staff Coordinator</h2>
 
         <input
-          className="w-full rounded-xl bg-white/10 px-4 py-3 text-white"
+          className="w-full rounded-xl bg-white/10 px-4 py-3 text-white disabled:opacity-50"
+          disabled={clubLocked}
           value={club.staffCoordinator?.name ?? ""}
           onChange={(e) =>
             setClub({
@@ -234,7 +276,8 @@ export default function EditClubPage() {
         />
 
         <input
-          className="w-full rounded-xl bg-white/10 px-4 py-3 text-white"
+          className="w-full rounded-xl bg-white/10 px-4 py-3 text-white disabled:opacity-50"
+          disabled={clubLocked}
           value={club.staffCoordinator?.department ?? ""}
           onChange={(e) =>
             setClub({
@@ -249,7 +292,9 @@ export default function EditClubPage() {
         />
       </section>
 
-      <section className="space-y-6">
+      <section
+        className={`space-y-6 ${clubLocked ? "opacity-50 pointer-events-none" : ""}`}
+      >
         <h2 className="text-sm uppercase text-purple-300">Club Ranks</h2>
 
         {club.ranks.map((rank, i) => (
@@ -366,158 +411,169 @@ export default function EditClubPage() {
       <section className="space-y-6">
         <h2 className="text-sm uppercase text-purple-300">Domains</h2>
 
-        {club.domains.map((domain, di) => (
-          <div
-            key={di}
-            className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-4"
-          >
-            <input
-              className="w-full rounded-lg bg-white/10 px-3 py-3 text-white"
-              value={domain.name}
-              onChange={(e) => {
-                const d = [...club.domains];
-                d[di].name = e.target.value;
-                setClub({ ...club, domains: d });
-              }}
-              placeholder="Domain name"
-            />
+        {club.domains.map((domain, di) => {
+          const domainLocked = isDomainLead && !editableDomains.includes(di);
+          return (
+            <div
+              key={di}
+              className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-4"
+            >
+              <input
+                className="w-full rounded-lg bg-white/10 px-3 py-3 text-white disabled:opacity-50"
+                disabled={domainLocked}
+                value={domain.name}
+                onChange={(e) => {
+                  const d = [...club.domains];
+                  d[di].name = e.target.value;
+                  setClub({ ...club, domains: d });
+                }}
+                placeholder="Domain name"
+              />
 
-            <textarea
-              rows={2}
-              className="w-full rounded-lg bg-white/10 px-3 py-3 text-white"
-              value={domain.description ?? ""}
-              onChange={(e) => {
-                const d = [...club.domains];
-                d[di].description = e.target.value;
-                setClub({ ...club, domains: d });
-              }}
-              placeholder="Domain description"
-            />
-
-            {domain.ranks.map((rank, ri) => (
+              <textarea
+                rows={2}
+                className="w-full rounded-lg bg-white/10 px-3 py-3 text-white disabled:opacity-50"
+                disabled={domainLocked}
+                value={domain.description ?? ""}
+                onChange={(e) => {
+                  const d = [...club.domains];
+                  d[di].description = e.target.value;
+                  setClub({ ...club, domains: d });
+                }}
+                placeholder="Domain description"
+              />
               <div
-                key={ri}
-                className="rounded-lg bg-white/5 border border-white/10 p-3 space-y-3"
+                className={domainLocked ? "opacity-50 pointer-events-none" : ""}
               >
-                <div className="flex gap-2 items-center">
-                  <input
-                    className="flex-1 rounded-lg bg-white/10 px-3 py-2 text-white"
-                    value={rank.name}
-                    onChange={(e) => {
-                      const d = [...club.domains];
-                      d[di].ranks[ri].name = e.target.value;
-                      setClub({ ...club, domains: d });
-                    }}
-                  />
-
-                  <div className="flex flex-col">
-                    <button
-                      disabled={ri === 0}
-                      className="text-purple-300 disabled:opacity-30"
-                      onClick={() => {
-                        const d = [...club.domains];
-                        d[di].ranks = normalizeLevels(
-                          moveItem(d[di].ranks, ri, ri - 1),
-                        );
-                        setClub({ ...club, domains: d });
-                      }}
+                {domain.ranks.map((rank, ri) => {
+                  return (
+                    <div
+                      key={ri}
+                      className="rounded-lg bg-white/5 border border-white/10 p-3 space-y-3"
                     >
-                      ▲
-                    </button>
-                    <button
-                      disabled={ri === domain.ranks.length - 1}
-                      className="text-purple-300 disabled:opacity-30"
-                      onClick={() => {
-                        const d = [...club.domains];
-                        d[di].ranks = normalizeLevels(
-                          moveItem(d[di].ranks, ri, ri + 1),
-                        );
-                        setClub({ ...club, domains: d });
-                      }}
-                    >
-                      ▼
-                    </button>
-                  </div>
+                      <div className="flex gap-2 items-center">
+                        <input
+                          className="flex-1 rounded-lg bg-white/10 px-3 py-2 text-white"
+                          value={rank.name}
+                          onChange={(e) => {
+                            const d = [...club.domains];
+                            d[di].ranks[ri].name = e.target.value;
+                            setClub({ ...club, domains: d });
+                          }}
+                        />
 
-                  <span className="w-10 text-center font-mono text-purple-300">
-                    {rank.level}
-                  </span>
-                </div>
+                        <div className="flex flex-col">
+                          <button
+                            disabled={ri === 0}
+                            className="text-purple-300 disabled:opacity-30"
+                            onClick={() => {
+                              const d = [...club.domains];
+                              d[di].ranks = normalizeLevels(
+                                moveItem(d[di].ranks, ri, ri - 1),
+                              );
+                              setClub({ ...club, domains: d });
+                            }}
+                          >
+                            ▲
+                          </button>
+                          <button
+                            disabled={ri === domain.ranks.length - 1}
+                            className="text-purple-300 disabled:opacity-30"
+                            onClick={() => {
+                              const d = [...club.domains];
+                              d[di].ranks = normalizeLevels(
+                                moveItem(d[di].ranks, ri, ri + 1),
+                              );
+                              setClub({ ...club, domains: d });
+                            }}
+                          >
+                            ▼
+                          </button>
+                        </div>
 
-                {rank.users.map((u, ui) => (
-                  <div
-                    key={ui}
-                    className="flex justify-between text-sm text-white"
-                  >
-                    <span>{u.srn}</span>
-                    <button
-                      className="text-red-400"
-                      onClick={() => {
-                        const d = [...club.domains];
-                        d[di].ranks[ri].users = d[di].ranks[ri].users.filter(
-                          (_, x) => x !== ui,
-                        );
-                        setClub({ ...club, domains: d });
-                      }}
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))}
+                        <span className="w-10 text-center font-mono text-purple-300">
+                          {rank.level}
+                        </span>
+                      </div>
 
-                <UserSelect
-                  onPick={(srn) => {
-                    const d = [...club.domains];
-                    d[di].ranks[ri].users.push({ srn });
-                    setClub({ ...club, domains: d });
-                  }}
-                />
+                      {rank.users.map((u, ui) => (
+                        <div
+                          key={ui}
+                          className="flex justify-between text-sm text-white"
+                        >
+                          <span>{u.srn}</span>
+                          <button
+                            className="text-red-400"
+                            onClick={() => {
+                              const d = [...club.domains];
+                              d[di].ranks[ri].users = d[di].ranks[
+                                ri
+                              ].users.filter((_, x) => x !== ui);
+                              setClub({ ...club, domains: d });
+                            }}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+
+                      <UserSelect
+                        onPick={(srn) => {
+                          const d = [...club.domains];
+                          d[di].ranks[ri].users.push({ srn });
+                          setClub({ ...club, domains: d });
+                        }}
+                      />
+
+                      <button
+                        className="w-full rounded-lg bg-red-500/20 text-red-300 py-2 text-sm"
+                        onClick={() => {
+                          const d = [...club.domains];
+                          d[di].ranks = normalizeLevels(
+                            d[di].ranks.filter((_, x) => x !== ri),
+                          );
+                          setClub({ ...club, domains: d });
+                        }}
+                      >
+                        Delete rank
+                      </button>
+                    </div>
+                  );
+                })}
 
                 <button
-                  className="w-full rounded-lg bg-red-500/20 text-red-300 py-2 text-sm"
+                  className="px-4 py-2 rounded-lg bg-purple-500/20 text-purple-300 text-sm"
                   onClick={() => {
                     const d = [...club.domains];
-                    d[di].ranks = normalizeLevels(
-                      d[di].ranks.filter((_, x) => x !== ri),
-                    );
+                    d[di].ranks = normalizeLevels([
+                      ...d[di].ranks,
+                      { name: "", level: d[di].ranks.length + 1, users: [] },
+                    ]);
                     setClub({ ...club, domains: d });
                   }}
                 >
-                  Delete rank
+                  + Add domain rank
                 </button>
               </div>
-            ))}
-
-            <button
-              className="px-4 py-2 rounded-lg bg-purple-500/20 text-purple-300 text-sm"
-              onClick={() => {
-                const d = [...club.domains];
-                d[di].ranks = normalizeLevels([
-                  ...d[di].ranks,
-                  { name: "", level: d[di].ranks.length + 1, users: [] },
-                ]);
-                setClub({ ...club, domains: d });
-              }}
-            >
-              + Add domain rank
-            </button>
-
-            <button
-              className="w-full rounded-lg bg-red-600/30 text-red-300 py-2 text-sm"
-              onClick={() =>
-                setClub({
-                  ...club,
-                  domains: club.domains.filter((_, x) => x !== di),
-                })
-              }
-            >
-              Delete domain
-            </button>
-          </div>
-        ))}
+              <button
+                className="w-full rounded-lg bg-red-600/30 text-red-300 py-2 text-sm"
+                disabled={domainLocked}
+                onClick={() =>
+                  setClub({
+                    ...club,
+                    domains: club.domains.filter((_, x) => x !== di),
+                  })
+                }
+              >
+                Delete domain
+              </button>
+            </div>
+          );
+        })}
 
         <button
-          className="px-4 py-2 rounded-lg bg-purple-600/30 text-purple-300"
+          className="px-4 py-2 rounded-lg bg-purple-600/30 text-purple-300 disabled:opacity-50"
+          disabled={isDomainLead}
           onClick={() =>
             setClub({
               ...club,
@@ -540,16 +596,18 @@ export default function EditClubPage() {
         {saving ? "Saving…" : "Save Changes"}
       </button>
 
-      <button
-        onClick={async () => {
-          if (!confirm("Delete this club permanently?")) return;
-          await fetch(`/api/clubs/${id}/edit`, { method: "DELETE" });
-          router.push("/clubs");
-        }}
-        className="w-full py-3 rounded-xl bg-red-700 text-white font-semibold"
-      >
-        Delete Club
-      </button>
+      {isAdmin && (
+        <button
+          onClick={async () => {
+            if (!confirm("Delete this club permanently?")) return;
+            await fetch(`/api/clubs/${id}/edit`, { method: "DELETE" });
+            router.push("/clubs");
+          }}
+          className="w-full py-3 rounded-xl bg-red-700 text-white font-semibold"
+        >
+          Delete Club
+        </button>
+      )}
     </div>
   );
 }

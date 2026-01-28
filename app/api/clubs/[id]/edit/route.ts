@@ -1,7 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
+import {
+  getClubEditScope,
+  getEditableDomainIndexes,
+} from "@/lib/permissions/clubPermissions";
 import Club from "@/lib/models/Club";
+import User from "@/lib/models/User";
+import { cookies } from "next/headers";
+import { verifyToken } from "@/lib/auth";
 
 function hasDuplicateLevels(ranks: any[]) {
   const levels = ranks.map((r) => r.level);
@@ -14,15 +21,49 @@ export async function PATCH(
 ) {
   const { id } = await context.params;
   const data = await req.json();
+  const token = (await cookies()).get("auth_token")?.value;
+  if (!token) return NextResponse.json({ user: null });
+
+  const payload = verifyToken(token);
+  if (!payload) return NextResponse.json({ user: null });
 
   await connectDB();
-  const safeRanks = (data.ranks ?? []).map((r: any, i: number) => ({
+  const user = await User.findById(payload.sub).select("name srn email role");
+  const actualUser = user.user;
+
+  const club = await Club.findById(id);
+  if (!club) {
+    return NextResponse.json({ error: "Club not found" }, { status: 404 });
+  }
+  const scope = getClubEditScope({ user, club });
+
+  if (scope === "NONE") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  let incomingRanks = data.ranks;
+  let incomingDomains = data.domains;
+
+  if (scope === "DOMAIN") {
+    incomingRanks = club.ranks;
+
+    const editableDomains = getEditableDomainIndexes({
+      user: actualUser,
+      club,
+    });
+
+    incomingDomains = club.domains.map((d: any, i: number) =>
+      editableDomains.includes(i) ? data.domains[i] : d,
+    );
+  }
+
+  const safeRanks = (incomingRanks ?? []).map((r: any, i: number) => ({
     name: r?.name ?? "",
     level: typeof r?.level === "number" ? r.level : i + 1,
     users: Array.isArray(r?.users) ? r.users.filter((u: any) => u?.srn) : [],
   }));
 
-  const safeDomains = (data.domains ?? []).map((d: any) => ({
+  const safeDomains = (incomingDomains ?? []).map((d: any) => ({
     name: d?.name ?? "",
     description: d?.description ?? "",
     ranks: (d?.ranks ?? []).map((r: any, i: number) => ({
@@ -84,8 +125,29 @@ export async function DELETE(
 ) {
   const { id } = await params;
 
-  await connectDB();
-  await Club.findByIdAndDelete(id);
+  const token = (await cookies()).get("auth_token")?.value;
+  if (!token) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
+  const payload = verifyToken(token);
+  if (!payload) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  await connectDB();
+  const user = await User.findById(payload.sub).select("srn role");
+
+  const club = await Club.findById(id);
+  if (!club) {
+    return NextResponse.json({ error: "Club not found" }, { status: 404 });
+  }
+
+  const scope = getClubEditScope({ user, club });
+  if (scope !== "ADMIN") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  await Club.findByIdAndDelete(id);
   return NextResponse.json({ success: true });
 }
