@@ -33,76 +33,102 @@ export default function DashboardPage() {
       .then((data) => {
         setUser(data.user);
         if (data.user?.role === "admin") {
-          fetch("/api/admin/club-requests?status=pending")
-            .then((res) => res.json())
-            .then((data) => {
-              setRequests(data.requests || []);
-              setLoading(false);
-            });
-        } else {
-          fetch("/api/club-requests/me")
-            .then((res) => res.json())
-            .then((data) => {
-              setRequests(data.requests || []);
-              setLoading(false);
-            });
+          return fetch("/api/admin/club-requests?status=pending");
         }
+        return fetch("/api/club-requests/me");
+      })
+      .then((res) => res.json())
+      .then((data) => {
+        setRequests(data.requests || []);
+        setLoading(false);
+      })
+      .catch(() => {
+        toast.error("Failed to load dashboard");
+        setLoading(false);
       });
   }, []);
 
   const confirmCreation = async (id: string) => {
-    const res = await fetch(`/api/club-requests/${id}/confirm`, {
-      method: "POST",
-    });
+    const toastId = toast.loading("Creating club…");
 
-    if (res.ok) {
-      toast.success("Club created successfully 🎉");
+    try {
+      const res = await fetch(`/api/club-requests/${id}/confirm`, {
+        method: "POST",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || "Failed to confirm club creation", {
+          id: toastId,
+        });
+        return;
+      }
+
+      toast.success("Club created successfully 🎉", { id: toastId });
 
       setRequests((prev) =>
         prev.map((r) => (r._id === id ? { ...r, status: "completed" } : r)),
       );
-    } else {
-      const data = await res.json();
-      toast.error(data.error || "Failed to confirm club creation");
+    } catch {
+      toast.error("Network error. Please try again.", { id: toastId });
     }
   };
 
   const loadLogs = async () => {
-    const statuses = ["approved", "rejected", "completed"];
+    const toastId = toast.loading("Loading request logs…");
 
-    const results: ClubRequest[] = [];
+    try {
+      const statuses = ["approved", "rejected", "completed"];
+      const results: ClubRequest[] = [];
 
-    for (const status of statuses) {
-      const res = await fetch(`/api/admin/club-requests?status=${status}`);
-      const data = await res.json();
-      if (data.requests) {
-        results.push(...data.requests);
+      for (const status of statuses) {
+        const res = await fetch(`/api/admin/club-requests?status=${status}`);
+        const data = await res.json();
+        if (data.requests) {
+          results.push(...data.requests);
+        }
       }
+
+      results.sort(
+        (a: any, b: any) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+
+      setLogs(results);
+      toast.success("Logs loaded", { id: toastId });
+    } catch {
+      toast.error("Failed to load logs", { id: toastId });
     }
-
-    results.sort(
-      (a: any, b: any) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
-
-    setLogs(results);
   };
 
   const handleAction = async (id: string, action: "approve" | "reject") => {
-    const res = await fetch(`/api/admin/club-requests/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action }),
-    });
+    const toastId = toast.loading(
+      action === "approve" ? "Approving request…" : "Rejecting request…",
+    );
 
-    if (res.ok) {
-      toast.success(
-        action === "approve" ? "Request approved" : "Request rejected",
-      );
-      setRequests((prev) => prev.filter((r) => r._id !== id));
-    } else {
+    try {
+      const res = await fetch(`/api/admin/club-requests/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+
       const data = await res.json();
-      toast.error(data.error || "Action failed");
+
+      if (!res.ok) {
+        toast.error(data.error || "Action failed", { id: toastId });
+        return;
+      }
+
+      toast.success(
+        action === "approve" ? "Request approved ✅" : "Request rejected ❌",
+        { id: toastId },
+      );
+
+      setRequests((prev) => prev.filter((r) => r._id !== id));
+    } catch {
+      toast.error("Network error. Please try again.", { id: toastId });
     }
   };
 

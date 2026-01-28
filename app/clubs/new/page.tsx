@@ -38,33 +38,58 @@ export default function AddClubPage() {
   const submit = async () => {
     if (submitting || !user) return;
 
+    if (!form.name.trim()) {
+      toast.error("Club name is required");
+      return;
+    }
+
+    if (!form.foundedOn) {
+      toast.error("Founded date is required");
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 
     const endpoint =
       user.role === "admin" ? "/api/clubs/create" : "/api/club-requests";
 
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
+    const toastId = toast.loading(
+      user.role === "admin" ? "Creating club…" : "Sending club request…",
+    );
 
-    const data = await res.json();
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
 
-    if (!res.ok) {
-      toast.error(data.message || "Something went wrong");
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.message || "Something went wrong", { id: toastId });
+        setSubmitting(false);
+        return;
+      }
+
+      toast.success(
+        user.role === "admin"
+          ? "Club created successfully 🎉"
+          : "Club request sent for approval ✅",
+        { id: toastId },
+      );
+
+      if (user.role === "admin") {
+        router.push(`/clubs/${data._id}`);
+      } else {
+        router.push("/dashboard");
+      }
+    } catch {
+      toast.error("Network error. Please try again.", { id: toastId });
+    } finally {
       setSubmitting(false);
-      return;
     }
-
-    if (user.role === "admin") {
-      router.push(`/clubs/${data._id}`);
-    } else {
-      router.push("/dashboard");
-    }
-
-    setSubmitting(false);
   };
 
   if (loading) {
@@ -135,12 +160,6 @@ export default function AddClubPage() {
             setForm({ ...form, staffDepartment: e.target.value })
           }
         />
-
-        {error && (
-          <div className="rounded-lg bg-red-500/10 border border-red-500/30 px-4 py-3 text-red-400 text-sm">
-            {error}
-          </div>
-        )}
 
         <button
           onClick={submit}

@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Club } from "@/lib/types/club";
+import toast from "react-hot-toast";
 import {
   getClubEditScope,
   getEditableDomainIndexes,
@@ -17,6 +18,10 @@ export default function EditClubPage() {
   const [club, setClub] = useState<Club | null>(null);
   const [saving, setSaving] = useState(false);
   const [allSrns, setAllSrns] = useState<string[]>([]);
+
+  const confirmAction = (message: string) => {
+    return window.confirm(message);
+  };
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -119,25 +124,34 @@ export default function EditClubPage() {
 
   const save = async () => {
     if (club.isRecruiting && !club.recruitingLink?.trim()) {
-      alert("Recruitment form link is required");
+      toast.error("Recruitment form link is required");
       return;
     }
 
     setSaving(true);
-    const res = await fetch(`/api/clubs/${id}/edit`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(club),
-    });
-    const data = await res.json();
-    setSaving(false);
+    const toastId = toast.loading("Saving changes…");
 
-    if (!res.ok) {
-      alert(data.error || "Failed to save");
-      return;
+    try {
+      const res = await fetch(`/api/clubs/${id}/edit`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(club),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || "Failed to save", { id: toastId });
+        return;
+      }
+
+      toast.success("Club updated successfully", { id: toastId });
+      router.refresh();
+    } catch {
+      toast.error("Something went wrong", { id: toastId });
+    } finally {
+      setSaving(false);
     }
-
-    router.refresh();
   };
 
   return (
@@ -351,9 +365,14 @@ export default function EditClubPage() {
                 <button
                   className="text-red-400"
                   onClick={() => {
+                    if (!confirmAction("Remove this user from the rank?"))
+                      return;
+
                     const r = [...club.ranks];
                     r[i].users = r[i].users.filter((_, x) => x !== ui);
                     setClub({ ...club, ranks: r });
+
+                    toast.success("User removed");
                   }}
                 >
                   Remove
@@ -380,12 +399,16 @@ export default function EditClubPage() {
 
             <button
               className="w-full rounded-lg bg-red-500/20 text-red-300 py-2"
-              onClick={() =>
+              onClick={() => {
+                if (!confirmAction("Delete this rank?")) return;
+
                 setClub({
                   ...club,
                   ranks: normalizeLevels(club.ranks.filter((_, x) => x !== i)),
-                })
-              }
+                });
+
+                toast.success("Rank deleted");
+              }}
             >
               Delete rank
             </button>
@@ -528,11 +551,16 @@ export default function EditClubPage() {
                       <button
                         className="w-full rounded-lg bg-red-500/20 text-red-300 py-2 text-sm"
                         onClick={() => {
+                          if (!confirmAction("Delete this domain rank?"))
+                            return;
+
                           const d = [...club.domains];
                           d[di].ranks = normalizeLevels(
                             d[di].ranks.filter((_, x) => x !== ri),
                           );
                           setClub({ ...club, domains: d });
+
+                          toast.success("Domain rank deleted");
                         }}
                       >
                         Delete rank
@@ -558,12 +586,16 @@ export default function EditClubPage() {
               <button
                 className="w-full rounded-lg bg-red-600/30 text-red-300 py-2 text-sm"
                 disabled={domainLocked}
-                onClick={() =>
+                onClick={() => {
+                  if (!confirmAction("Delete this domain permanently?")) return;
+
                   setClub({
                     ...club,
                     domains: club.domains.filter((_, x) => x !== di),
-                  })
-                }
+                  });
+
+                  toast.success("Domain deleted");
+                }}
               >
                 Delete domain
               </button>
@@ -599,8 +631,13 @@ export default function EditClubPage() {
       {isAdmin && (
         <button
           onClick={async () => {
-            if (!confirm("Delete this club permanently?")) return;
+            if (!confirmAction("Delete this club permanently?")) return;
+
+            const toastId = toast.loading("Deleting club…");
+
             await fetch(`/api/clubs/${id}/edit`, { method: "DELETE" });
+
+            toast.success("Club deleted", { id: toastId });
             router.push("/clubs");
           }}
           className="w-full py-3 rounded-xl bg-red-700 text-white font-semibold"
