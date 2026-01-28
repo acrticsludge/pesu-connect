@@ -131,42 +131,45 @@ export default function ClubPage() {
                 </ol>
               </nav>
 
-              <h1 className="text-2xl sm:text-4xl font-extrabold text-white">
-                {club.name}{" "}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <h1 className="text-2xl sm:text-4xl font-extrabold text-white">
+                  {club.name}
+                </h1>
+
                 {(scope === "ADMIN" ||
                   scope === "CLUB" ||
                   scope === "DOMAIN") && (
                   <Link href={`/clubs/${club._id}/edit`}>
                     <button
                       className="
-    relative px-7 py-3
-    rounded-full font-bold text-sm sm:text-lg
-    text-white
-    bg-linear-to-br from-[#7C3AED] via-[#9333EA] to-[#A855F7]
-    shadow-[0_0_25px_rgba(168,85,247,0.8)]
-    border border-purple-300/40
-    transition-all duration-200
-    hover:shadow-[0_0_40px_rgba(168,85,247,1)]
-    hover:scale-[1.04]
-    active:scale-[0.97]
-    overflow-hidden
-    cursor-pointer
-  "
+          relative px-6 py-2.5
+          rounded-full font-bold text-sm sm:text-base
+          text-white
+          bg-linear-to-br from-[#7C3AED] via-[#9333EA] to-[#A855F7]
+          shadow-[0_0_22px_rgba(168,85,247,0.8)]
+          border border-purple-300/40
+          transition-all duration-200
+          hover:shadow-[0_0_36px_rgba(168,85,247,1)]
+          hover:scale-[1.04]
+          active:scale-[0.97]
+          overflow-hidden
+          cursor-pointer
+        "
                     >
                       <span className="relative z-10">Edit Club</span>
 
                       <span
                         className="
-      absolute inset-0
-      bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.25),transparent)]
-      opacity-0 hover:opacity-100
-      transition-opacity
-    "
+            absolute inset-0
+            bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.25),transparent)]
+            opacity-0 hover:opacity-100
+            transition-opacity
+          "
                       />
                     </button>
                   </Link>
                 )}
-              </h1>
+              </div>
 
               {club.isRecruiting && club.recruitingLink && (
                 <button
