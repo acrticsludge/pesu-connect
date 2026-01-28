@@ -4,7 +4,16 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Club } from "@/lib/types/club";
+
 import toast from "react-hot-toast";
+
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Link from "@tiptap/extension-link";
+import Underline from "@tiptap/extension-underline";
+import { TextStyle } from "@tiptap/extension-text-style";
+import Color from "@tiptap/extension-color";
+
 import {
   getClubEditScope,
   getEditableDomainIndexes,
@@ -13,8 +22,8 @@ import {
 export default function EditClubPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
 
+  const [user, setUser] = useState<any>(null);
   const [club, setClub] = useState<Club | null>(null);
   const [saving, setSaving] = useState(false);
   const [allSrns, setAllSrns] = useState<string[]>([]);
@@ -65,6 +74,61 @@ export default function EditClubPage() {
       );
   }, [id]);
 
+  const editor = useEditor({
+    immediatelyRender: false,
+    editable: true,
+    extensions: [
+      StarterKit.configure({
+        heading: { levels: [2, 3] },
+      }),
+      Underline,
+      TextStyle,
+      Color.configure({
+        types: ["textStyle"],
+      }),
+      Link,
+    ],
+    content: "",
+    onUpdate: ({ editor }) => {
+      setClub((prev) =>
+        prev ? { ...prev, fullDescription: editor.getHTML() } : prev,
+      );
+    },
+  });
+
+  useEffect(() => {
+    if (!editor || !club?.fullDescription) return;
+    editor.commands.setContent(club.fullDescription);
+  }, [editor, club?.fullDescription]);
+
+  const ToolbarButton = ({
+    children,
+    onClick,
+    active,
+  }: {
+    children: React.ReactNode;
+    onClick: () => void;
+    active?: boolean;
+  }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`
+      px-3 py-1 rounded-md text-sm font-medium
+      transition
+      ${
+        active
+          ? "bg-purple-500/30 text-purple-200"
+          : "bg-white/10 text-white hover:bg-white/20"
+      }
+    `}
+    >
+      {children}
+    </button>
+  );
+
+  const Divider = () => <div className="w-px bg-white/20 mx-1" />;
+
   if (!club || !user) {
     return <div className="py-24 text-center text-white/60">Loading…</div>;
   }
@@ -89,6 +153,10 @@ export default function EditClubPage() {
   const isClubLead = scope === "CLUB";
   const isDomainLead = scope === "DOMAIN";
   const clubLocked = isDomainLead;
+
+  if (editor && editor.isEditable !== !clubLocked) {
+    editor.setEditable(!clubLocked);
+  }
 
   const normalizeLevels = (ranks: any[]) =>
     ranks.map((r, i) => ({ ...r, level: i + 1 }));
@@ -228,16 +296,95 @@ export default function EditClubPage() {
           placeholder="Short description"
         />
 
-        <textarea
-          disabled={clubLocked}
-          rows={4}
-          className="w-full rounded-xl bg-white/10 px-4 py-3 text-white disabled:opacity-50"
-          value={club.fullDescription ?? ""}
-          onChange={(e) =>
-            setClub({ ...club, fullDescription: e.target.value })
-          }
-          placeholder="Full description"
-        />
+        <div
+          className={`w-full rounded-xl bg-white/10 px-4 py-3 text-white ${
+            clubLocked ? "opacity-50 pointer-events-none" : ""
+          }`}
+        >
+          {!editor?.getText() && (
+            <div className="pointer-events-none text-white/40">
+              Write a detailed description. Use headings, lists, and formatting.
+            </div>
+          )}
+          <div className="flex flex-wrap gap-1 mb-2 rounded-lg bg-white/5 border border-white/10 p-2">
+            <ToolbarButton
+              active={editor?.isActive("bold")}
+              onClick={() => editor?.chain().focus().toggleBold().run()}
+            >
+              <b>B</b>
+            </ToolbarButton>
+
+            <ToolbarButton
+              active={editor?.isActive("italic")}
+              onClick={() => editor?.chain().focus().toggleItalic().run()}
+            >
+              <i>I</i>
+            </ToolbarButton>
+
+            <ToolbarButton
+              active={editor?.isActive("underline")}
+              onClick={() => editor?.chain().focus().toggleUnderline().run()}
+            >
+              <u>U</u>
+            </ToolbarButton>
+
+            <Divider />
+
+            <ToolbarButton
+              active={editor?.isActive("heading", { level: 2 })}
+              onClick={() =>
+                editor?.chain().focus().toggleHeading({ level: 2 }).run()
+              }
+            >
+              H2
+            </ToolbarButton>
+
+            <ToolbarButton
+              active={editor?.isActive("heading", { level: 3 })}
+              onClick={() =>
+                editor?.chain().focus().toggleHeading({ level: 3 }).run()
+              }
+            >
+              H3
+            </ToolbarButton>
+
+            <Divider />
+
+            <ToolbarButton
+              active={editor?.isActive("bulletList")}
+              onClick={() => editor?.chain().focus().toggleBulletList().run()}
+            >
+              • List
+            </ToolbarButton>
+
+            <ToolbarButton
+              active={editor?.isActive("orderedList")}
+              onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+            >
+              1. List
+            </ToolbarButton>
+
+            <Divider />
+
+            <input
+              type="color"
+              className="h-8 w-8 rounded cursor-pointer bg-transparent"
+              onChange={(e) =>
+                editor?.chain().focus().setColor(e.target.value).run()
+              }
+              title="Text color"
+            />
+
+            <ToolbarButton
+              onClick={() => editor?.chain().focus().unsetColor().run()}
+            >
+              Reset
+            </ToolbarButton>
+          </div>
+
+          <EditorContent editor={editor} />
+        </div>
+
         <h2 className="text-sm uppercase text-purple-300">Founded on</h2>
 
         <input

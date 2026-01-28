@@ -198,9 +198,13 @@ export default function ClubPage() {
                 <h2 className="text-lg sm:text-xl font-bold text-white mb-2">
                   About
                 </h2>
-                <p className="text-sm sm:text-base text-[#A3A3A3] leading-relaxed">
-                  {club.fullDescription}
-                </p>
+
+                <div
+                  className="prose prose-invert max-w-none text-sm sm:text-base"
+                  dangerouslySetInnerHTML={{
+                    __html: club.fullDescription,
+                  }}
+                />
               </section>
             )}
 
