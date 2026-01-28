@@ -8,20 +8,6 @@ function hasDuplicateLevels(ranks: any[]) {
   return new Set(levels).size !== levels.length;
 }
 
-function hasDuplicateUsers(ranks: any[]) {
-  const seen = new Set<string>();
-
-  for (const r of ranks ?? []) {
-    for (const u of r.users ?? []) {
-      if (!u?.srn) continue;
-      if (seen.has(u.srn)) return true;
-      seen.add(u.srn);
-    }
-  }
-
-  return false;
-}
-
 export async function PATCH(
   req: Request,
   context: { params: Promise<{ id: string }> },
@@ -30,19 +16,12 @@ export async function PATCH(
   const data = await req.json();
 
   await connectDB();
-
-  // -------------------------
-  // NORMALIZE CLUB RANKS
-  // -------------------------
   const safeRanks = (data.ranks ?? []).map((r: any, i: number) => ({
     name: r?.name ?? "",
     level: typeof r?.level === "number" ? r.level : i + 1,
     users: Array.isArray(r?.users) ? r.users.filter((u: any) => u?.srn) : [],
   }));
 
-  // -------------------------
-  // NORMALIZE DOMAINS
-  // -------------------------
   const safeDomains = (data.domains ?? []).map((d: any) => ({
     name: d?.name ?? "",
     description: d?.description ?? "",
@@ -53,19 +32,9 @@ export async function PATCH(
     })),
   }));
 
-  // -------------------------
-  // VALIDATION
-  // -------------------------
   if (hasDuplicateLevels(safeRanks)) {
     return NextResponse.json(
       { error: "Duplicate club rank levels are not allowed" },
-      { status: 400 },
-    );
-  }
-
-  if (hasDuplicateUsers(safeRanks)) {
-    return NextResponse.json(
-      { error: "A user cannot have multiple club ranks" },
       { status: 400 },
     );
   }
@@ -77,18 +46,8 @@ export async function PATCH(
         { status: 400 },
       );
     }
-
-    if (hasDuplicateUsers(d.ranks)) {
-      return NextResponse.json(
-        { error: `Duplicate users in domain "${d.name}"` },
-        { status: 400 },
-      );
-    }
   }
 
-  // -------------------------
-  // UPDATE (FULL REPLACE)
-  // -------------------------
   const updated = await Club.findByIdAndUpdate(
     id,
     {

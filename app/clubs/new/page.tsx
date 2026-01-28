@@ -9,6 +9,7 @@ export default function AddClubPage() {
   const [user, setUser] = useState<any>(null);
 
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -35,7 +36,9 @@ export default function AddClubPage() {
 
   const submit = async () => {
     if (submitting || !user) return;
+
     setSubmitting(true);
+    setError(null);
 
     const endpoint =
       user.role === "admin" ? "/api/clubs/create" : "/api/club-requests";
@@ -46,13 +49,18 @@ export default function AddClubPage() {
       body: JSON.stringify(form),
     });
 
-    if (res.ok) {
-      if (user.role === "admin") {
-        const club = await res.json();
-        router.push(`/clubs/${club._id}`);
-      } else {
-        router.push("/dashboard");
-      }
+    const data = await res.json();
+
+    if (!res.ok) {
+      setError(data.message || "Something went wrong");
+      setSubmitting(false);
+      return;
+    }
+
+    if (user.role === "admin") {
+      router.push(`/clubs/${data._id}`);
+    } else {
+      router.push("/dashboard");
     }
 
     setSubmitting(false);
@@ -126,6 +134,12 @@ export default function AddClubPage() {
             setForm({ ...form, staffDepartment: e.target.value })
           }
         />
+
+        {error && (
+          <div className="rounded-lg bg-red-500/10 border border-red-500/30 px-4 py-3 text-red-400 text-sm">
+            {error}
+          </div>
+        )}
 
         <button
           onClick={submit}

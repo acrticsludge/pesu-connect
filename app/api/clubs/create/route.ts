@@ -65,7 +65,7 @@ export async function POST(req: Request) {
     ranks: [
       {
         name: "Club Lead",
-        level: 0,
+        level: 1,
         users: [{ srn: user.srn }],
       },
     ],

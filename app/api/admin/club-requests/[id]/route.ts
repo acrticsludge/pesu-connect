@@ -7,8 +7,9 @@ import ClubCreationRequest from "@/lib/models/ClubCreationRequest";
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   try {
     const token = (await cookies()).get("auth_token")?.value;
     if (!token) {
@@ -34,7 +35,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
 
-    const request = await ClubCreationRequest.findById(params.id);
+    const request = await ClubCreationRequest.findById(id);
     if (!request || request.status !== "pending") {
       return NextResponse.json(
         { error: "Request not found or already handled" },

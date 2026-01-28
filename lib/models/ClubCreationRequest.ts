@@ -78,5 +78,18 @@ const ClubCreationRequestSchema = new Schema(
   },
 );
 
+ClubCreationRequestSchema.index(
+  {
+    "requestedBy.userId": 1,
+    status: 1,
+  },
+  {
+    unique: true,
+    partialFilterExpression: {
+      status: { $in: ["pending", "approved"] },
+    },
+  },
+);
+
 export default mongoose.models.ClubCreationRequest ||
   mongoose.model("ClubCreationRequest", ClubCreationRequestSchema);

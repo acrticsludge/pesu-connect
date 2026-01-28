@@ -21,6 +21,21 @@ export async function POST(req: Request) {
 
     const user = await User.findById(payload.sub).select("name srn email role");
 
+    const existingRequest = await ClubCreationRequest.findOne({
+      "requestedBy.userId": user._id,
+      status: { $in: ["pending", "approved"] },
+    });
+
+    if (existingRequest) {
+      return NextResponse.json(
+        {
+          message:
+            "You already have an active club creation request. Please wait for it to be resolved.",
+        },
+        { status: 409 },
+      );
+    }
+
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
