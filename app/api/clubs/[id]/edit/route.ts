@@ -35,9 +35,53 @@ export async function PATCH(
   if (!club) {
     return NextResponse.json({ error: "Club not found" }, { status: 404 });
   }
+  const isSelfRemovingFromClubLevelOne =
+    user.role !== "admin" &&
+    (() => {
+      if (!Array.isArray(data.ranks)) return false;
+
+      const oldTopRank = club.ranks?.find((r: any) => r.level === 1);
+      const newTopRank = data.ranks?.find((r: any) => r.level === 1);
+
+      if (!oldTopRank || !newTopRank) return false;
+
+      const wasUser = oldTopRank.users?.some((u: any) => u.srn === user.srn);
+
+      const isUserNow = newTopRank.users?.some((u: any) => u.srn === user.srn);
+
+      return wasUser && !isUserNow;
+    })();
+
+  const isSelfRemovingFromDomainLevelOne =
+    user.role !== "admin" &&
+    (() => {
+      if (!Array.isArray(data.domains)) return false;
+
+      return data.domains.some((d: any, di: number) => {
+        const existingDomain = club.domains[di];
+        if (!existingDomain) return false;
+
+        return d.ranks?.some((r: any) => {
+          if (r.level !== 1) return false;
+
+          const wasUser = existingDomain.ranks
+            ?.find((er: any) => er.level === 1)
+            ?.users?.some((u: any) => u.srn === user.srn);
+
+          const isUserNow = r.users?.some((u: any) => u.srn === user.srn);
+
+          return wasUser && !isUserNow;
+        });
+      });
+    })();
+
   const scope = getClubEditScope({ user, club });
 
-  if (scope === "NONE") {
+  if (
+    scope === "NONE" &&
+    !isSelfRemovingFromDomainLevelOne &&
+    !isSelfRemovingFromClubLevelOne
+  ) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -45,16 +89,24 @@ export async function PATCH(
   let incomingDomains = data.domains;
 
   if (scope === "DOMAIN") {
-    incomingRanks = club.ranks;
+    incomingRanks = isSelfRemovingFromClubLevelOne ? data.ranks : club.ranks;
 
     const editableDomains = getEditableDomainIndexes({
       user: actualUser,
       club,
     });
 
-    incomingDomains = club.domains.map((d: any, i: number) =>
-      editableDomains.includes(i) ? data.domains[i] : d,
-    );
+    incomingDomains = club.domains.map((d: any, i: number) => {
+      if (editableDomains.includes(i)) {
+        return data.domains[i];
+      }
+
+      if (isSelfRemovingFromDomainLevelOne) {
+        return data.domains[i] ?? d;
+      }
+
+      return d;
+    });
   }
 
   const safeRanks = (incomingRanks ?? []).map((r: any, i: number) => ({

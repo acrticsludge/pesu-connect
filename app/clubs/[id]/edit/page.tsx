@@ -154,6 +154,37 @@ export default function EditClubPage() {
     }
   };
 
+  const saveAndExit = async (
+    nextClub: Club,
+    confirmText: string,
+    successText: string,
+  ) => {
+    if (!confirmAction(confirmText)) return;
+
+    const toastId = toast.loading("Saving changes…");
+
+    try {
+      const res = await fetch(`/api/clubs/${id}/edit`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(nextClub),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || "Failed to save", { id: toastId });
+        return;
+      }
+
+      toast.success(successText, { id: toastId });
+
+      router.replace(`/clubs/${id}`);
+    } catch {
+      toast.error("Network error", { id: toastId });
+    }
+  };
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-10 space-y-12">
       <nav className="text-sm text-white/50">
@@ -366,14 +397,26 @@ export default function EditClubPage() {
                 <button
                   className="text-red-400"
                   onClick={() => {
-                    if (!confirmAction("Remove this user from the rank?"))
+                    const nextClub = {
+                      ...club,
+                      ranks: club.ranks.map((r, idx) =>
+                        idx === i
+                          ? { ...r, users: r.users.filter((_, x) => x !== ui) }
+                          : r,
+                      ),
+                    };
+
+                    if (rank.level === 1 && !isAdmin) {
+                      saveAndExit(
+                        nextClub,
+                        "Removing yourself from club lead will revoke edit access. Continue?",
+                        "You are no longer a club lead",
+                      );
                       return;
+                    }
 
-                    const r = [...club.ranks];
-                    r[i].users = r[i].users.filter((_, x) => x !== ui);
-                    setClub({ ...club, ranks: r });
-
-                    toast.success("User removed");
+                    setClub(nextClub);
+                    save();
                   }}
                 >
                   Remove
@@ -529,11 +572,40 @@ export default function EditClubPage() {
                           <button
                             className="text-red-400"
                             onClick={() => {
-                              const d = [...club.domains];
-                              d[di].ranks[ri].users = d[di].ranks[
-                                ri
-                              ].users.filter((_, x) => x !== ui);
-                              setClub({ ...club, domains: d });
+                              const isSelf = u.srn === actualUser.srn;
+
+                              const nextClub = {
+                                ...club,
+                                domains: club.domains.map((dom, dIdx) =>
+                                  dIdx !== di
+                                    ? dom
+                                    : {
+                                        ...dom,
+                                        ranks: dom.ranks.map((r, rIdx) =>
+                                          rIdx === ri
+                                            ? {
+                                                ...r,
+                                                users: r.users.filter(
+                                                  (_, x) => x !== ui,
+                                                ),
+                                              }
+                                            : r,
+                                        ),
+                                      },
+                                ),
+                              };
+
+                              if (rank.level === 1 && isSelf && !isAdmin) {
+                                saveAndExit(
+                                  nextClub,
+                                  "Removing yourself from the top domain rank will revoke edit access. Continue?",
+                                  "You have been removed from the domain lead role",
+                                );
+                                return;
+                              }
+
+                              setClub(nextClub);
+                              save();
                             }}
                           >
                             Remove
