@@ -24,3 +24,64 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.ql-editor {
+  background: transparent !important;
+}
+
+.ql-editor::before {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.ql-toolbar button,
+.ql-toolbar .ql-picker {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.ql-toolbar button:hover,
+.ql-toolbar .ql-picker:hover {
+  color: white;
+}
+
+.ql-toolbar .ql-active {
+  color: #a78bfa; /* purple-300 */
+}
+
+.ql-toolbar .ql-picker-options {
+  background: #0f0f1a;
+  color: white;
+}
+
+/* Kill all Snow borders */
+.ql-container,
+.ql-toolbar {
+  border: none !important;
+}
+
+/* Remove inner divider line */
+.ql-toolbar::after {
+  display: none !important;
+}
+
+/* Toolbar icons */
+.ql-toolbar button svg {
+  stroke: rgba(255, 255, 255, 0.85);
+  fill: rgba(255, 255, 255, 0.85);
+}
+
+/* Hover */
+.ql-toolbar button:hover svg {
+  stroke: #ffffff;
+  fill: #ffffff;
+}
+
+/* Active */
+.ql-toolbar button.ql-active svg {
+  stroke: #a78bfa;
+  fill: #a78bfa;
+}
+
+/* Disabled (locked state) */
+.ql-toolbar button:disabled svg {
+  opacity: 0.4;
+}

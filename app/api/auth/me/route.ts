@@ -7,7 +7,6 @@ import User from "@/lib/models/User";
 export async function GET() {
   const token = (await cookies()).get("auth_token")?.value;
   if (!token) return NextResponse.json({ user: null });
-
   const payload = verifyToken(token);
   if (!payload) return NextResponse.json({ user: null });
 

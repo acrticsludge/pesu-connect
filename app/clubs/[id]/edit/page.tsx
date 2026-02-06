@@ -7,17 +7,17 @@ import { Club } from "@/lib/types/club";
 
 import toast from "react-hot-toast";
 
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Link from "@tiptap/extension-link";
-import Underline from "@tiptap/extension-underline";
-import { TextStyle } from "@tiptap/extension-text-style";
-import Color from "@tiptap/extension-color";
+import dynamic from "next/dynamic";
+import "react-quill-new/dist/quill.snow.css";
 
 import {
   getClubEditScope,
   getEditableDomainIndexes,
 } from "@/lib/permissions/clubPermissions";
+
+const ReactQuill = dynamic(() => import("react-quill-new"), {
+  ssr: false,
+});
 
 export default function EditClubPage() {
   const { id } = useParams<{ id: string }>();
@@ -74,61 +74,6 @@ export default function EditClubPage() {
       );
   }, [id]);
 
-  const editor = useEditor({
-    immediatelyRender: false,
-    editable: true,
-    extensions: [
-      StarterKit.configure({
-        heading: { levels: [2, 3] },
-      }),
-      Underline,
-      TextStyle,
-      Color.configure({
-        types: ["textStyle"],
-      }),
-      Link,
-    ],
-    content: "",
-    onUpdate: ({ editor }) => {
-      setClub((prev) =>
-        prev ? { ...prev, fullDescription: editor.getHTML() } : prev,
-      );
-    },
-  });
-
-  useEffect(() => {
-    if (!editor || !club?.fullDescription) return;
-    editor.commands.setContent(club.fullDescription);
-  }, [editor, club?.fullDescription]);
-
-  const ToolbarButton = ({
-    children,
-    onClick,
-    active,
-  }: {
-    children: React.ReactNode;
-    onClick: () => void;
-    active?: boolean;
-  }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`
-      px-3 py-1 rounded-md text-sm font-medium
-      transition
-      ${
-        active
-          ? "bg-purple-500/30 text-purple-200"
-          : "bg-white/10 text-white hover:bg-white/20"
-      }
-    `}
-    >
-      {children}
-    </button>
-  );
-
-  const Divider = () => <div className="w-px bg-white/20 mx-1" />;
-
   if (!club || !user) {
     return <div className="py-24 text-center text-white/60">Loading…</div>;
   }
@@ -153,10 +98,6 @@ export default function EditClubPage() {
   const isClubLead = scope === "CLUB";
   const isDomainLead = scope === "DOMAIN";
   const clubLocked = isDomainLead;
-
-  if (editor && editor.isEditable !== !clubLocked) {
-    editor.setEditable(!clubLocked);
-  }
 
   const normalizeLevels = (ranks: any[]) =>
     ranks.map((r, i) => ({ ...r, level: i + 1 }));
@@ -214,6 +155,33 @@ export default function EditClubPage() {
       }
 
       toast.success("Club updated successfully", { id: toastId });
+      router.refresh();
+    } catch {
+      toast.error("Something went wrong", { id: toastId });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveWith = async (data: Club) => {
+    setSaving(true);
+    const toastId = toast.loading("Saving changes…");
+
+    try {
+      const res = await fetch(`/api/clubs/${id}/edit`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        toast.error(result.error || "Failed to save", { id: toastId });
+        return;
+      }
+
+      toast.success("Changes saved", { id: toastId });
       router.refresh();
     } catch {
       toast.error("Something went wrong", { id: toastId });
@@ -297,92 +265,38 @@ export default function EditClubPage() {
         />
 
         <div
-          className={`w-full rounded-xl bg-white/10 px-4 py-3 text-white ${
-            clubLocked ? "opacity-50 pointer-events-none" : ""
+          className={`w-full rounded-xl bg-white/10 px-4 py-3 ${
+            clubLocked ? "opacity-50" : ""
           }`}
         >
-          {!editor?.getText() && (
-            <div className="pointer-events-none text-white/40">
-              Write a detailed description. Use headings, lists, and formatting.
-            </div>
-          )}
-          <div className="flex flex-wrap gap-1 mb-2 rounded-lg bg-white/5 border border-white/10 p-2">
-            <ToolbarButton
-              active={editor?.isActive("bold")}
-              onClick={() => editor?.chain().focus().toggleBold().run()}
-            >
-              <b>B</b>
-            </ToolbarButton>
-
-            <ToolbarButton
-              active={editor?.isActive("italic")}
-              onClick={() => editor?.chain().focus().toggleItalic().run()}
-            >
-              <i>I</i>
-            </ToolbarButton>
-
-            <ToolbarButton
-              active={editor?.isActive("underline")}
-              onClick={() => editor?.chain().focus().toggleUnderline().run()}
-            >
-              <u>U</u>
-            </ToolbarButton>
-
-            <Divider />
-
-            <ToolbarButton
-              active={editor?.isActive("heading", { level: 2 })}
-              onClick={() =>
-                editor?.chain().focus().toggleHeading({ level: 2 }).run()
-              }
-            >
-              H2
-            </ToolbarButton>
-
-            <ToolbarButton
-              active={editor?.isActive("heading", { level: 3 })}
-              onClick={() =>
-                editor?.chain().focus().toggleHeading({ level: 3 }).run()
-              }
-            >
-              H3
-            </ToolbarButton>
-
-            <Divider />
-
-            <ToolbarButton
-              active={editor?.isActive("bulletList")}
-              onClick={() => editor?.chain().focus().toggleBulletList().run()}
-            >
-              • List
-            </ToolbarButton>
-
-            <ToolbarButton
-              active={editor?.isActive("orderedList")}
-              onClick={() => editor?.chain().focus().toggleOrderedList().run()}
-            >
-              1. List
-            </ToolbarButton>
-
-            <Divider />
-
-            <input
-              type="color"
-              className="h-8 w-8 rounded cursor-pointer bg-transparent"
-              onChange={(e) =>
-                editor?.chain().focus().setColor(e.target.value).run()
-              }
-              title="Text color"
-            />
-
-            <ToolbarButton
-              onClick={() => editor?.chain().focus().unsetColor().run()}
-            >
-              Reset
-            </ToolbarButton>
-          </div>
-
-          <EditorContent editor={editor} />
+          <ReactQuill
+            value={club?.fullDescription || ""}
+            readOnly={clubLocked}
+            onChange={(html) =>
+              setClub((prev) =>
+                prev ? { ...prev, fullDescription: html } : prev,
+              )
+            }
+            placeholder="Full Description"
+            theme="snow"
+            modules={{
+              toolbar: clubLocked
+                ? false
+                : [
+                    ["bold", "italic", "underline"],
+                    [{ header: [2, 3, false] }],
+                    [{ list: "ordered" }, { list: "bullet" }],
+                    [{ color: [] }, { background: [] }],
+                    ["clean"],
+                  ],
+            }}
+            className="
+      text-white
+      [&_.ql-editor]:min-h-30
+      [&_.ql-editor]:text-white
+      [&_.ql-container]:bg-transparent
+    "
+          />
         </div>
 
         <h2 className="text-sm uppercase text-purple-300">Founded on</h2>
@@ -563,7 +477,7 @@ export default function EditClubPage() {
                     }
 
                     setClub(nextClub);
-                    save();
+                    saveWith(nextClub);
                   }}
                 >
                   Remove
@@ -752,7 +666,7 @@ export default function EditClubPage() {
                               }
 
                               setClub(nextClub);
-                              save();
+                              saveWith(nextClub);
                             }}
                           >
                             Remove
