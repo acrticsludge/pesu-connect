@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import EventCard from "./Cards/EventCards/EventCard";
 import ClubCard from "./Cards/ClubCards/ClubCard";
-import { Event, EventTag } from "@/lib/types/event";
+import { BaseEventData, EventTag } from "@/lib/types/event";
 import { Club } from "@/lib/types/club";
 
 export default function Home() {
@@ -13,7 +13,7 @@ export default function Home() {
   const eventsScrollRef = useRef<HTMLDivElement>(null);
   const clubsScrollRef = useRef<HTMLDivElement>(null);
 
-  const [events, setEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<BaseEventData[]>([]);
   const [clubs, setClubs] = useState<Club[]>([]);
   const [activeFilter, setActiveFilter] = useState<EventTag | "all">("all");
   const [loading, setLoading] = useState(true);
@@ -125,23 +125,31 @@ export default function Home() {
           </h2>
 
           <div className="flex gap-2 pb-3 overflow-x-auto sm:overflow-visible flex-nowrap sm:flex-wrap sm:justify-end">
-            {(["all", "technical", "cultural", "sports"] as const).map(
-              (filter) => (
-                <button
-                  key={filter}
-                  onClick={() => setActiveFilter(filter)}
-                  className={`px-4 py-2 rounded-full text-sm shrink-0 ${
-                    activeFilter === filter
-                      ? "bg-[#7C3AED] text-white"
-                      : "bg-[#0A0A0A] border border-white/10 text-[#A3A3A3]"
-                  }`}
-                >
-                  {filter === "all"
-                    ? "All Events"
-                    : filter.charAt(0).toUpperCase() + filter.slice(1)}
-                </button>
-              ),
-            )}
+            {(
+              [
+                "all",
+                "WORKSHOP",
+                "HACKATHON",
+                "SEMINAR",
+                "COMPETITION",
+                "MEETUP",
+                "OTHER",
+              ] as const
+            ).map((filter) => (
+              <button
+                key={filter}
+                onClick={() => setActiveFilter(filter)}
+                className={`px-4 py-2 rounded-full text-sm shrink-0 ${
+                  activeFilter === filter
+                    ? "bg-[#7C3AED] text-white"
+                    : "bg-[#0A0A0A] border border-white/10 text-[#A3A3A3]"
+                }`}
+              >
+                {filter === "all"
+                  ? "All Events"
+                  : filter.charAt(0).toUpperCase() + filter.slice(1)}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -160,17 +168,7 @@ export default function Home() {
             ref={eventsScrollRef}
             className="flex items-stretch gap-4 overflow-x-auto overflow-y-visible scroll-smooth snap-x snap-mandatory py-8
             [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          >
-            {!loading &&
-              filteredEvents.map((event) => (
-                <div
-                  key={event._id}
-                  className="snap-start shrink-0 w-[88%] sm:w-90 lg:w-95 h-full"
-                >
-                  <EventCard event={event} />
-                </div>
-              ))}
-          </div>
+          ></div>
 
           <button
             onClick={() => scrollBy(eventsScrollRef, 400)}

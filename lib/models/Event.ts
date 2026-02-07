@@ -1,92 +1,80 @@
-import mongoose, { Schema, model, models } from "mongoose";
+import mongoose, { Schema, Types } from "mongoose";
 
 const EventSchema = new Schema(
   {
-    title: {
-      type: String,
-      required: true,
-      trim: true,
-    },
+    name: { type: String, required: true },
+    shortDescription: { type: String, required: true },
+    fullDescription: { type: String, required: true },
 
-    shortDescription: {
-      type: String,
-      required: true,
-      maxlength: 200,
-    },
+    bannerUrl: { type: String, required: true },
 
-    description: {
-      type: String,
-      required: true,
-    },
-
-    registrationDeadline: {
-      type: Date,
-      required: true,
-    },
-
-    eventDate: {
-      type: Date,
-      required: true,
-    },
-
-    venue: {
-      type: String,
-      required: true,
-    },
-
-    campus: {
-      name: {
-        type: String,
-        required: true,
+    involvedClubs: [
+      {
+        club: {
+          type: Schema.Types.ObjectId,
+          ref: "Club",
+          required: true,
+        },
+        domains: {
+          type: [String],
+          required: true,
+          validate: {
+            validator: (v: string[]) => v.length > 0,
+            message: "At least one domain is required",
+          },
+        },
       },
-      code: {
-        type: String,
-        enum: ["EC", "RR"],
-        required: true,
-      },
-    },
+    ],
 
-    club: {
-      name: {
-        type: String,
-        required: true,
-      },
-      slug: {
-        type: String,
-        required: true,
-      },
+    categories: {
+      type: [String],
+      enum: ["TECHNICAL", "CULTURAL", "SPORTS"],
+      required: true,
     },
 
     tags: {
       type: [String],
-      enum: ["technical", "cultural", "sports"],
-      default: [],
+      enum: [
+        "WORKSHOP",
+        "HACKATHON",
+        "SEMINAR",
+        "COMPETITION",
+        "MEETUP",
+        "OTHER",
+      ],
+      required: true,
     },
 
-    isPinned: {
-      type: Boolean,
-      default: false,
+    registration: {
+      isRegister: { type: Boolean, required: true },
+      deadline: Date,
+      link: String,
+      methodText: String,
     },
 
-    isActive: {
-      type: Boolean,
-      default: true,
+    startDate: { type: Date, required: true },
+    endDate: { type: Date, required: true },
+
+    venue: { type: String, required: true },
+
+    campus: {
+      type: String,
+      enum: ["EC", "RR"],
+      required: true,
     },
 
-    bannerImage: {
-      url: {
-        type: String,
-        required: true,
-      },
-      alt: {
-        type: String,
-        default: "",
-      },
+    isPinned: { type: Boolean, default: false },
+
+    createdBy: {
+      type: Types.ObjectId,
+      ref: "User",
+      required: true,
     },
   },
-  {
-    timestamps: true,
-  },
+  { timestamps: true },
 );
 
-export default models.Event || model("Event", EventSchema);
+EventSchema.index({ name: "text" });
+EventSchema.index({ isPinned: -1, startDate: 1 });
+
+export default mongoose.models.Event || mongoose.model("Event", EventSchema);

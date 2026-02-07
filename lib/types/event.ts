@@ -1,41 +1,44 @@
-export type EventTag = "technical" | "cultural" | "sports";
+export type EventCategory = "TECHNICAL" | "CULTURAL" | "SPORTS";
 
-export type Campus = {
+export type EventTag =
+  | "WORKSHOP"
+  | "HACKATHON"
+  | "SEMINAR"
+  | "COMPETITION"
+  | "MEETUP"
+  | "OTHER";
+
+export type RegistrationInfo = {
+  isRegister: boolean;
+  deadline?: Date;
+  link?: string;
+  methodText?: string;
+};
+
+export type InvolvedClub = {
+  club: string;
+  domains: string[];
+};
+
+export interface BaseEventData {
   name: string;
-  code: "EC" | "RR";
-};
-
-export type Club = {
-  name: string;
-  slug: string;
-};
-
-export type BannerImage = {
-  url: string;
-  alt: string;
-};
-
-export type Event = {
-  _id: string;
-
-  title: string;
   shortDescription: string;
-  description: string;
+  fullDescription: string;
 
-  registrationDeadline: string;
-  eventDate: string;
-  venue: string;
+  bannerUrl: string;
 
-  campus: Campus;
-  club: Club;
+  involvedClubs: InvolvedClub[];
 
+  categories: EventCategory[];
   tags: EventTag[];
 
+  registration: RegistrationInfo;
+
+  startDate: Date;
+  endDate: Date;
+
+  venue: string;
+  campus: "EC" | "RR";
+
   isPinned: boolean;
-  isActive: boolean;
-
-  bannerImage: BannerImage;
-
-  createdAt: string;
-  updatedAt: string;
-};
+}

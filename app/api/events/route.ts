@@ -1,13 +1,39 @@
-import EventModel from "@/lib/models/Event";
+import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
-import type { Event } from "@/lib/types/event";
 
-export async function GET() {
+import Event from "@/lib/models/Event";
+
+export async function GET(req: Request) {
   await connectDB();
 
-  const events = await EventModel.find({ isActive: true })
-    .sort({ isPinned: -1, registrationDeadline: 1 })
-    .lean();
+  const { searchParams } = new URL(req.url);
 
-  return Response.json(events as Event[]);
+  const q = searchParams.get("q");
+  const campus = searchParams.get("campus");
+  const category = searchParams.get("category");
+
+  const filter: any = {};
+
+  if (q) {
+    filter.$text = { $search: q };
+  }
+
+  if (campus) {
+    filter.campus = campus;
+  }
+
+  if (category) {
+    filter.category = category;
+  }
+
+  const events = await Event.find(filter)
+    .sort({
+      isPinned: -1, // pinned first
+      startDate: 1, // upcoming first
+    })
+    .select(
+      "name shortDescription bannerUrl startDate endDate venue campus category tag isPinned",
+    );
+
+  return NextResponse.json({ events });
 }
