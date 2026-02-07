@@ -1,11 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 export default function LoginPage() {
-  const router = useRouter();
-
   const [srn, setSrn] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -14,6 +12,7 @@ export default function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    const toastID = toast.loading("Logging in...");
     setError("");
 
     const res = await fetch("/api/auth/login", {
@@ -27,8 +26,9 @@ export default function LoginPage() {
     } else {
       const data = await res.json();
       setError(data.error || "Login failed");
+      toast.error(data.error || "Login failed", { id: toastID });
     }
-
+    toast.success("Logged in successfully!", { id: toastID });
     setLoading(false);
   }
 
