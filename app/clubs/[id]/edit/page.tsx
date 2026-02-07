@@ -571,7 +571,9 @@ export default function EditClubPage() {
                 placeholder="Domain description"
               />
               <div
-                className={domainLocked ? "opacity-50 pointer-events-none" : ""}
+                className={
+                  domainLocked ? "opacity-50 pointer-events-none" : "space-y-3"
+                }
               >
                 {domain.ranks.map((rank, ri) => {
                   return (

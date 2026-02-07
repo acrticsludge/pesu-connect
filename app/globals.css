@@ -33,6 +33,11 @@ body {
   color: rgba(255, 255, 255, 0.4) !important;
 }
 
+.ql-toolbar {
+  background: #0f0f1a;
+  border-bottom: none !important;
+}
+
 .ql-toolbar button,
 .ql-toolbar .ql-picker {
   color: rgba(255, 255, 255, 0.7);
