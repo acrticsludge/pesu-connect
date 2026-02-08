@@ -72,7 +72,30 @@ const getRegistrationStatus = (registration: {
   };
 };
 
-export default function EventCard({ event }: { event: BaseEventData }) {
+function highlight(text: string, query: string) {
+  if (!query.trim()) return text;
+
+  const words = query.toLowerCase().split(" ").filter(Boolean);
+  const regex = new RegExp(`(${words.join("|")})`, "gi");
+
+  return text.split(regex).map((part, i) =>
+    regex.test(part) ? (
+      <mark key={i} className="bg-purple-500/30 text-purple-200 rounded px-1">
+        {part}
+      </mark>
+    ) : (
+      part
+    ),
+  );
+}
+
+export default function EventCard({
+  event,
+  query,
+}: {
+  event: BaseEventData;
+  query?: string;
+}) {
   const daysLeft = getDaysLeft(event.registration?.deadline);
   const imageSrc = isValidImageUrl(event.bannerUrl)
     ? event.bannerUrl
@@ -162,11 +185,13 @@ export default function EventCard({ event }: { event: BaseEventData }) {
         </div>
 
         <h3 className="text-base sm:text-lg font-semibold text-white">
-          {event.name}
+          {query ? highlight(event.name, query) : event.name}
         </h3>
 
         <p className="text-sm text-white/70 line-clamp-2">
-          {event.shortDescription}
+          {query
+            ? highlight(event.shortDescription, query)
+            : event.shortDescription}
         </p>
 
         {daysLeft !== null && daysLeft >= 0 && (
