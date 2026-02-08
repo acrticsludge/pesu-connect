@@ -14,6 +14,7 @@ const TAGS = [
   "MEETUP",
   "OTHER",
 ] as const;
+const CAMPUS = ["RR", "EC"] as const;
 
 export default function NewEventPage() {
   const router = useRouter();
@@ -47,7 +48,7 @@ export default function NewEventPage() {
     startDate: "",
     endDate: "",
     venue: "",
-    campus: "EC",
+    campus: "RR",
     isPinned: false,
   });
 
@@ -105,13 +106,6 @@ export default function NewEventPage() {
       const next = [...prev.involvedClubs];
       next[index] = { ...next[index], domains };
       return { ...prev, involvedClubs: next };
-    });
-  };
-
-  const removeClub = (i: number) => {
-    setForm({
-      ...form,
-      involvedClubs: form.involvedClubs.filter((_, idx) => idx !== i),
     });
   };
 
@@ -252,6 +246,24 @@ export default function NewEventPage() {
           selected={form.tags}
           onToggle={(v) => toggleMulti("tags", v)}
         />
+      </Field>
+      <Field label="Campus">
+        <div className="flex gap-2">
+          {CAMPUS.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setForm({ ...form, campus: c })}
+              className={`px-3 py-1 rounded-full text-sm border ${
+                form.campus === c
+                  ? "bg-[#7C3AED] border-[#7C3AED]"
+                  : "border-white/20 text-white/80"
+              }`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
       </Field>
 
       <Field label="Involved Clubs & Domains">
