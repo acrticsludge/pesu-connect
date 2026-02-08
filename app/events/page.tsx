@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import EventCard from "../Cards/EventCards/EventCard";
 import { BaseEventData } from "@/lib/types/event";
+import Link from "next/link";
 
 function useDebounce<T>(value: T, delay = 250) {
   const [debounced, setDebounced] = useState(value);
@@ -248,9 +249,11 @@ export default function EventsPage() {
             return (
               <div
                 key={event.name}
-                className={`transition ${past ? "opacity-50 grayscale" : ""}`}
+                className={`transition ${past ? "opacity-50 grayscale" : "cursor-pointer"}`}
               >
-                <EventCard event={event} query={debouncedQuery} />
+                <Link href={`/events/${event._id}`} className="block h-full">
+                  <EventCard event={event} query={debouncedQuery} />
+                </Link>
               </div>
             );
           })}

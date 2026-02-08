@@ -55,11 +55,14 @@ export default function EventPage() {
     : null;
   const isRegClosed = regDeadline ? regDeadline.getTime() < Date.now() : false;
 
-  const formatDate = (d: string | Date) =>
-    new Date(d).toLocaleDateString("en-IN", {
+  const formatDateTime = (d: string | Date) =>
+    new Date(d).toLocaleString("en-IN", {
       day: "numeric",
       month: "short",
       year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
     });
 
   const slugify = (text: string) => text.toLowerCase().replace(/\s+/g, "-");
@@ -190,7 +193,8 @@ export default function EventPage() {
                 <div>
                   Date:{" "}
                   <span className="text-white font-medium">
-                    {formatDate(event.startDate)} – {formatDate(event.endDate)}
+                    {formatDateTime(event.startDate)} –{" "}
+                    {formatDateTime(event.endDate)}
                   </span>
                 </div>
 
@@ -208,7 +212,7 @@ export default function EventPage() {
                   <div>
                     Last day to register:{" "}
                     <span className="text-white font-medium">
-                      {formatDate(regDeadline)}
+                      {formatDateTime(regDeadline)}
                     </span>
                   </div>
                 )}

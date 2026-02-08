@@ -32,46 +32,6 @@ const isValidImageUrl = (url?: string) => {
   }
 };
 
-const getRegistrationStatus = (registration: {
-  isRegister: boolean;
-  deadline?: Date;
-  link?: string;
-}) => {
-  if (!registration.isRegister) return null;
-
-  if (registration.deadline) {
-    const isClosed = new Date(registration.deadline).getTime() < Date.now();
-
-    if (isClosed) {
-      return {
-        label: "Registration Closed",
-        color: "bg-red-500/20 text-red-300 border border-red-500/30",
-        pulse: false,
-      };
-    }
-
-    return {
-      label: "Register Now",
-      color: "bg-green-500/20 text-green-300 border border-green-500/30",
-      pulse: true,
-    };
-  }
-
-  if (registration.link) {
-    return {
-      label: "Register Now",
-      color: "bg-green-500/20 text-green-300 border border-green-500/30",
-      pulse: true,
-    };
-  }
-
-  return {
-    label: "On-spot Registration",
-    color: "bg-blue-500/20 text-blue-300 border border-blue-500/30",
-    pulse: false,
-  };
-};
-
 function highlight(text: string, query: string) {
   if (!query.trim()) return text;
 
@@ -96,11 +56,61 @@ export default function EventCard({
   event: BaseEventData;
   query?: string;
 }) {
-  const daysLeft = getDaysLeft(event.registration?.deadline);
+  const reg = event.registration;
+
+  const regDeadline = reg?.deadline ? new Date(reg.deadline) : null;
+
+  const isRegClosed = !!regDeadline && regDeadline.getTime() < Date.now();
+
+  const daysLeft =
+    regDeadline && !isRegClosed
+      ? Math.ceil((regDeadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+      : null;
+
+  const regStatus = (() => {
+    if (!reg?.isRegister) return null;
+
+    if (isRegClosed) {
+      return {
+        label: "Registration Closed",
+        color: "bg-red-500/20 text-red-300 border border-red-500/30",
+        pulse: false,
+      };
+    }
+
+    if (daysLeft !== null && daysLeft <= 2) {
+      return {
+        label: "Closing Soon",
+        color: "bg-red-500/20 text-red-300 border border-red-500/30",
+        pulse: true,
+      };
+    }
+
+    if (regDeadline || reg?.link) {
+      return {
+        label: "Register Now",
+        color: "bg-green-500/20 text-green-300 border border-green-500/30",
+        pulse: true,
+      };
+    }
+
+    return {
+      label: "On-spot Registration",
+      color: "bg-blue-500/20 text-blue-300 border border-blue-500/30",
+      pulse: false,
+    };
+  })();
+
   const imageSrc = isValidImageUrl(event.bannerUrl)
     ? event.bannerUrl
     : "/images/event-placeholder.png";
-  const regStatus = getRegistrationStatus(event.registration);
+
+  const regDeadlineText = event.registration?.deadline
+    ? new Date(event.registration.deadline).toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+      })
+    : null;
 
   return (
     <div
@@ -151,12 +161,6 @@ export default function EventCard({
             📌 Pinned
           </span>
         )}
-
-        {daysLeft !== null && daysLeft <= 2 && daysLeft >= 0 && (
-          <span className="absolute top-3 right-3 bg-red-500/90 text-white text-xs px-3 py-1 rounded-full animate-pulse">
-            Closing Soon
-          </span>
-        )}
       </div>
 
       <div className="p-4 space-y-3">
@@ -196,13 +200,11 @@ export default function EventCard({
 
         {daysLeft !== null && daysLeft >= 0 && (
           <div className="flex justify-between items-center pt-2 text-xs">
-            <span className="text-purple-300 font-medium">
-              Register by{" "}
-              {event.registration.deadline?.toLocaleDateString("en-IN", {
-                day: "numeric",
-                month: "short",
-              })}
-            </span>
+            {regDeadlineText && (
+              <span className="text-purple-300 font-medium">
+                Register by {regDeadlineText}
+              </span>
+            )}
 
             <span
               className={`font-medium ${
