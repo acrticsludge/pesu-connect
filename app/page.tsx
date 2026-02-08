@@ -23,6 +23,12 @@ export default function Home() {
     activeFilter === "all"
       ? events
       : events.filter((e) => e.tags.includes(activeFilter));
+  const sortedEvents = [...filteredEvents].sort((a, b) => {
+    if (a.isPinned === b.isPinned) {
+      return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+    }
+    return a.isPinned ? -1 : 1;
+  });
 
   const sortedClubs = [...clubs].sort((a, b) => {
     if (a.isRecruiting === b.isRecruiting) return 0;
@@ -32,7 +38,7 @@ export default function Home() {
   useEffect(() => {
     fetch("/api/events")
       .then((res) => res.json())
-      .then(setEvents)
+      .then((data) => setEvents(data.events))
       .finally(() => setLoading(false));
 
     fetch("/api/clubs")
@@ -167,8 +173,22 @@ export default function Home() {
           <div
             ref={eventsScrollRef}
             className="flex items-stretch gap-4 overflow-x-auto overflow-y-visible scroll-smooth snap-x snap-mandatory py-8
-            [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          ></div>
+  [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {loading && (
+              <div className="text-white/50 text-sm py-8">Loading events…</div>
+            )}
+
+            {!loading &&
+              sortedEvents.map((event) => (
+                <div
+                  key={event.name}
+                  className="snap-start shrink-0 w-[88%] sm:w-90 lg:w-95"
+                >
+                  <EventCard event={event} />
+                </div>
+              ))}
+          </div>
 
           <button
             onClick={() => scrollBy(eventsScrollRef, 400)}

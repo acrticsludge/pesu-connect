@@ -11,6 +11,7 @@ export async function GET(req: Request) {
   const q = searchParams.get("q");
   const campus = searchParams.get("campus");
   const category = searchParams.get("category");
+  const tag = searchParams.get("tag");
 
   const filter: any = {};
 
@@ -23,17 +24,22 @@ export async function GET(req: Request) {
   }
 
   if (category) {
-    filter.category = category;
+    filter.categories = category;
+  }
+
+  if (tag) {
+    filter.tags = tag;
   }
 
   const events = await Event.find(filter)
     .sort({
-      isPinned: -1, // pinned first
-      startDate: 1, // upcoming first
+      isPinned: -1,
+      startDate: 1,
     })
     .select(
-      "name shortDescription bannerUrl startDate endDate venue campus category tag isPinned",
-    );
+      "name shortDescription bannerUrl startDate endDate venue campus categories tags isPinned registration",
+    )
+    .lean();
 
   return NextResponse.json({ events });
 }
