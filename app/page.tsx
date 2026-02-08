@@ -126,9 +126,14 @@ export default function Home() {
 
       <div ref={upcomingRef} className="py-10 sm:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 mb-6">
-          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
-            Upcoming Events
-          </h2>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 mb-6 flex items-center justify-between">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white">
+              Upcoming Events
+            </h2>
+            <Link href="/events" className="text-sm text-purple-400">
+              View all
+            </Link>
+          </div>
 
           <div className="flex gap-2 pb-3 overflow-x-auto sm:overflow-visible flex-nowrap sm:flex-wrap sm:justify-end">
             {(
