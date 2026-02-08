@@ -21,6 +21,7 @@ export type InvolvedClub = {
 };
 
 export interface BaseEventData {
+  _id: string;
   name: string;
   shortDescription: string;
   fullDescription: string;

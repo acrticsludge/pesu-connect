@@ -190,7 +190,9 @@ export default function Home() {
                   key={event.name}
                   className="snap-start shrink-0 w-[88%] sm:w-90 lg:w-95"
                 >
-                  <EventCard event={event} />
+                  <Link href={`/events/${event._id}`} className="block h-full">
+                    <EventCard event={event} />
+                  </Link>
                 </div>
               ))}
           </div>

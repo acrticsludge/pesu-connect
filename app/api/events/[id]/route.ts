@@ -22,7 +22,7 @@ function isUserClubHead(userSrn: string, club: any) {
 }
 
 async function canUserEditEvent(user: any, event: any) {
-  if (user.role === "ADMIN") return true;
+  if (user.role === "admin") return true;
 
   for (const entry of event.involvedClubs) {
     const club = await Club.findById(entry.club);
@@ -34,10 +34,15 @@ async function canUserEditEvent(user: any, event: any) {
   return false;
 }
 
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(
+  _: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+
   await connectDB();
 
-  const event = await Event.findById(params.id)
+  const event = await Event.findById(id)
     .populate("involvedClubs.club", "name banner")
     .select("-__v");
 
@@ -120,7 +125,7 @@ export async function DELETE(
   await connectDB();
 
   const user = await User.findById(payload.sub);
-  if (!user || user.role !== "ADMIN") {
+  if (!user || user.role !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
