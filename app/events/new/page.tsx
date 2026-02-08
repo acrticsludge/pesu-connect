@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import dynamic from "next/dynamic";
 
 const CATEGORIES = ["TECHNICAL", "CULTURAL", "SPORTS"] as const;
 const TAGS = [
@@ -15,6 +16,11 @@ const TAGS = [
   "OTHER",
 ] as const;
 const CAMPUS = ["RR", "EC"] as const;
+
+const ReactQuill = dynamic(() => import("react-quill-new"), {
+  ssr: false,
+});
+import "react-quill-new/dist/quill.snow.css";
 
 export default function NewEventPage() {
   const router = useRouter();
@@ -216,12 +222,35 @@ export default function NewEventPage() {
       </Field>
 
       <Field label="Full Description">
-        <Textarea
-          rows={6}
-          value={form.fullDescription}
-          onChange={(v) => setForm({ ...form, fullDescription: v })}
-        />
+        <div className="w-full rounded-xl bg-white/10 px-4 py-3">
+          <ReactQuill
+            value={form.fullDescription}
+            onChange={(html) =>
+              setForm((prev) => ({ ...prev, fullDescription: html }))
+            }
+            placeholder="Describe the event in detail..."
+            theme="snow"
+            modules={{
+              toolbar: [
+                ["bold", "italic", "underline"],
+                [{ header: [2, 3, false] }],
+                [{ list: "ordered" }, { list: "bullet" }],
+                [{ color: [] }, { background: [] }],
+                ["clean"],
+              ],
+            }}
+            className="
+        text-white
+        [&_.ql-editor]:min-h-32
+        [&_.ql-editor]:text-white
+        [&_.ql-container]:bg-transparent
+        [&_.ql-toolbar]:border-white/10
+        [&_.ql-toolbar]:bg-white/5
+      "
+          />
+        </div>
       </Field>
+
       <div>
         <p className="text-white/80 mb-1">Banner Image URL</p>
         <input
@@ -343,7 +372,7 @@ export default function NewEventPage() {
         </div>
       </Field>
 
-      <Field label="Event Dates">
+      <Field label="Event Dates (Start to End)">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Input
             type="datetime-local"
