@@ -59,7 +59,7 @@ export default function EventCard({
   const reg = event.registration;
 
   const regDeadline = reg?.deadline ? new Date(reg.deadline) : null;
-
+  const isPast = new Date(event.endDate).getTime() < Date.now();
   const isRegClosed = !!regDeadline && regDeadline.getTime() < Date.now();
 
   const daysLeft =
@@ -69,6 +69,13 @@ export default function EventCard({
 
   const regStatus = (() => {
     if (!reg?.isRegister) return null;
+    if (isPast) {
+      return {
+        label: "Event Ended",
+        color: "bg-red-500/20 text-red-300 border border-red-500/30",
+        pulse: false,
+      };
+    }
 
     if (isRegClosed) {
       return {

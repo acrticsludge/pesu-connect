@@ -233,6 +233,7 @@ export default function EventPage() {
 
             {event.registration?.isRegister &&
               event.registration?.link &&
+              !isPast &&
               !isRegClosed && (
                 <button
                   onClick={() =>

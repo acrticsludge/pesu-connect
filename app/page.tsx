@@ -23,12 +23,16 @@ export default function Home() {
     activeFilter === "all"
       ? events
       : events.filter((e) => e.tags.includes(activeFilter));
-  const sortedEvents = [...filteredEvents].sort((a, b) => {
-    if (a.isPinned === b.isPinned) {
-      return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
-    }
-    return a.isPinned ? -1 : 1;
-  });
+  const sortedEvents = [...filteredEvents]
+    .filter((event) => new Date(event.endDate).getTime() >= Date.now())
+    .sort((a, b) => {
+      if (a.isPinned === b.isPinned) {
+        return (
+          new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+        );
+      }
+      return a.isPinned ? -1 : 1;
+    });
 
   const sortedClubs = [...clubs].sort((a, b) => {
     if (a.isRecruiting === b.isRecruiting) return 0;
@@ -174,7 +178,11 @@ export default function Home() {
           >
             ‹
           </button>
-
+          {sortedEvents.length === 0 && (
+            <div className="text-white/50 flex items-center justify-center text-xl py-8">
+              No upcoming events...
+            </div>
+          )}
           <div
             ref={eventsScrollRef}
             className="flex items-stretch gap-4 overflow-x-auto overflow-y-visible scroll-smooth snap-x snap-mandatory py-8
@@ -226,6 +234,11 @@ export default function Home() {
           </button>
 
           <div className="overflow-hidden">
+            {sortedClubs.length === 0 && (
+              <div className="text-white/50 flex items-center justify-center text-xl py-8">
+                No clubs to display...
+              </div>
+            )}
             <div
               ref={clubsScrollRef}
               className="
