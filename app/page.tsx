@@ -178,7 +178,7 @@ export default function Home() {
           >
             ‹
           </button>
-          {sortedEvents.length === 0 && (
+          {sortedEvents.length === 0 && !loading && (
             <div className="text-white/50 flex items-center justify-center text-xl py-8">
               No upcoming events...
             </div>
@@ -234,7 +234,7 @@ export default function Home() {
           </button>
 
           <div className="overflow-hidden">
-            {sortedClubs.length === 0 && (
+            {sortedClubs.length === 0 && !clubsLoading && (
               <div className="text-white/50 flex items-center justify-center text-xl py-8">
                 No clubs to display...
               </div>
@@ -251,6 +251,9 @@ export default function Home() {
       [&::-webkit-scrollbar]:hidden
     "
             >
+              {clubsLoading && (
+                <div className="text-white/50 text-sm py-8">Loading clubs…</div>
+              )}
               {!clubsLoading &&
                 sortedClubs.map((club) => (
                   <div

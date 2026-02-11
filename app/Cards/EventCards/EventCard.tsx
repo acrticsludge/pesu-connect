@@ -163,7 +163,7 @@ export default function EventCard({
           )}
         </div>
 
-        {event.isPinned && (
+        {event.isPinned && !isPast && (
           <span className="absolute top-3 left-3 bg-purple-600/90 text-white text-xs px-3 py-1 rounded-full shadow">
             📌 Pinned
           </span>
