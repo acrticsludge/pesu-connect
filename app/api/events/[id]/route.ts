@@ -7,11 +7,6 @@ import User from "@/lib/models/User";
 import Event from "@/lib/models/Event";
 import Club from "@/lib/models/Club";
 
-import {
-  validateRegistration,
-  validateEventDates,
-} from "@/lib/validators/event";
-
 function isUserClubHead(userSrn: string, club: any) {
   const maxLevel = Math.max(...club.ranks.map((r: any) => r.level));
   const topRanks = club.ranks.filter((r: any) => r.level === maxLevel);
@@ -35,27 +30,35 @@ async function canUserEditEvent(user: any, event: any) {
 }
 
 export async function GET(
-  _: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params;
+  try {
+    const { id } = await params;
 
-  await connectDB();
+    await connectDB();
 
-  const event = await Event.findById(id)
-    .populate("involvedClubs.club", "name banner")
-    .select("-__v");
+    const event = await Event.findById(id)
+      .populate("involvedClubs.club", "name banner domains")
+      .lean();
 
-  if (!event) {
-    return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    if (!event) {
+      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ event });
+  } catch (error) {
+    console.error("Error fetching event:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch event" },
+      { status: 500 },
+    );
   }
-
-  return NextResponse.json({ event });
 }
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const token = (await cookies()).get("auth_token")?.value;
@@ -72,7 +75,8 @@ export async function PATCH(
     if (!user)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const event = await Event.findById(params.id);
+    const { id } = await params;
+    const event = await Event.findById(id);
     if (!event)
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
 
@@ -82,27 +86,45 @@ export async function PATCH(
 
     const updates = await req.json();
 
+    // Only admins can pin events
     if (updates.isPinned !== undefined && user.role !== "admin") {
       delete updates.isPinned;
     }
 
+    // Validate registration if provided
     if (updates.registration) {
-      validateRegistration(updates.registration);
+      if (updates.registration.isRegister && !updates.registration.deadline) {
+        return NextResponse.json(
+          {
+            error:
+              "Registration deadline is required when registration is enabled",
+          },
+          { status: 400 },
+        );
+      }
     }
 
+    // Validate dates
     if (updates.startDate && updates.endDate) {
-      validateEventDates(
-        new Date(updates.startDate),
-        new Date(updates.endDate),
-      );
+      const start = new Date(updates.startDate);
+      const end = new Date(updates.endDate);
+      if (start >= end) {
+        return NextResponse.json(
+          { error: "End date must be after start date" },
+          { status: 400 },
+        );
+      }
     }
 
-    const updatedEvent = await Event.findByIdAndUpdate(params.id, updates, {
-      new: true,
-    });
+    const updatedEvent = await Event.findByIdAndUpdate(
+      id,
+      { $set: updates },
+      { new: true, runValidators: true },
+    ).populate("involvedClubs.club", "name banner");
 
     return NextResponse.json({ event: updatedEvent });
   } catch (err: any) {
+    console.error("Error updating event:", err);
     return NextResponse.json(
       { error: err.message || "Failed to update event" },
       { status: 400 },
@@ -111,28 +133,38 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _: Request,
-  { params }: { params: { id: string } },
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const token = (await cookies()).get("auth_token")?.value;
-  if (!token)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const token = (await cookies()).get("auth_token")?.value;
+    if (!token)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const payload = verifyToken(token);
-  if (!payload)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const payload = verifyToken(token);
+    if (!payload)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  await connectDB();
+    await connectDB();
 
-  const user = await User.findById(payload.sub);
-  if (!user || user.role !== "admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const user = await User.findById(payload.sub);
+    if (!user || user.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const { id } = await params;
+    const event = await Event.findByIdAndDelete(id);
+
+    if (!event) {
+      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting event:", error);
+    return NextResponse.json(
+      { error: "Failed to delete event" },
+      { status: 500 },
+    );
   }
-
-  const event = await Event.findByIdAndDelete(params.id);
-  if (!event) {
-    return NextResponse.json({ error: "Event not found" }, { status: 404 });
-  }
-
-  return NextResponse.json({ success: true });
 }

@@ -5,6 +5,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import dynamic from "next/dynamic";
+import "react-quill-new/dist/quill.snow.css";
+
+const ReactQuill = dynamic(() => import("react-quill-new"), {
+  ssr: false,
+});
 
 const CATEGORIES = ["TECHNICAL", "CULTURAL", "SPORTS"] as const;
 const TAGS = [
@@ -16,11 +21,6 @@ const TAGS = [
   "OTHER",
 ] as const;
 const CAMPUS = ["RR", "EC"] as const;
-
-const ReactQuill = dynamic(() => import("react-quill-new"), {
-  ssr: false,
-});
-import "react-quill-new/dist/quill.snow.css";
 
 export default function NewEventPage() {
   const router = useRouter();
@@ -54,7 +54,7 @@ export default function NewEventPage() {
     startDate: "",
     endDate: "",
     venue: "",
-    campus: "RR",
+    campus: "RR" as "RR" | "EC",
     isPinned: false,
   });
 
@@ -203,8 +203,15 @@ export default function NewEventPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-10 space-y-6 text-white">
-      <h1 className="text-3xl font-bold">Create Event</h1>
+    <div className="max-w-3xl mx-auto px-4 py-6 sm:py-10 space-y-6 sm:space-y-8 text-white">
+      <div className="space-y-2">
+        <h1 className="text-2xl sm:text-3xl font-bold">Create Event</h1>
+        <p className="text-sm text-white/60">
+          {user?.role === "admin"
+            ? "Fill in the details below to create a new event."
+            : "Fill in the details below to request a new event. It will be reviewed by an admin."}
+        </p>
+      </div>
 
       <Field label="Event Name">
         <Input
@@ -218,11 +225,13 @@ export default function NewEventPage() {
           rows={3}
           value={form.shortDescription}
           onChange={(v) => setForm({ ...form, shortDescription: v })}
+          placeholder="Brief overview of the event (max 160 characters)"
+          maxLength={160}
         />
       </Field>
 
       <Field label="Full Description">
-        <div className="w-full rounded-xl bg-white/10 px-4 py-3">
+        <div className="w-full rounded-xl bg-white/10 px-3 sm:px-4 py-3">
           <ReactQuill
             value={form.fullDescription}
             onChange={(html) =>
@@ -235,31 +244,33 @@ export default function NewEventPage() {
                 ["bold", "italic", "underline"],
                 [{ header: [2, 3, false] }],
                 [{ list: "ordered" }, { list: "bullet" }],
-                [{ color: [] }, { background: [] }],
                 ["clean"],
               ],
             }}
             className="
-        text-white
-        [&_.ql-editor]:min-h-32
-        [&_.ql-editor]:text-white
-        [&_.ql-container]:bg-transparent
-        [&_.ql-toolbar]:border-white/10
-        [&_.ql-toolbar]:bg-white/5
-      "
+              text-white
+              [&_.ql-editor]:min-h-40
+              [&_.ql-editor]:text-sm
+              sm:[&_.ql-editor]:text-base
+              [&_.ql-editor]:text-white
+              [&_.ql-container]:bg-transparent
+              [&_.ql-toolbar]:bg-transparent
+              [&_.ql-toolbar]:border-white/10
+              [&_.ql-toolbar_.ql-stroke]:stroke-white
+              [&_.ql-toolbar_.ql-fill]:fill-white
+            "
           />
         </div>
       </Field>
 
-      <div>
-        <p className="text-white/80 mb-1">Banner Image URL</p>
+      <Field label="Banner Image URL">
         <input
-          className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white outline-none"
+          className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm sm:text-base border border-white/10 focus:border-purple-500/50 focus:outline-none"
           placeholder="https://example.com/banner.jpg"
           value={form.bannerUrl}
           onChange={(e) => setForm({ ...form, bannerUrl: e.target.value })}
         />
-      </div>
+      </Field>
 
       <Field label="Categories">
         <ChipGroup
@@ -276,17 +287,18 @@ export default function NewEventPage() {
           onToggle={(v) => toggleMulti("tags", v)}
         />
       </Field>
+
       <Field label="Campus">
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {CAMPUS.map((c) => (
             <button
               key={c}
               type="button"
               onClick={() => setForm({ ...form, campus: c })}
-              className={`px-3 py-1 rounded-full text-sm border ${
+              className={`px-3 py-1 rounded-full text-sm border transition ${
                 form.campus === c
-                  ? "bg-[#7C3AED] border-[#7C3AED]"
-                  : "border-white/20 text-white/80"
+                  ? "bg-[#7C3AED] border-[#7C3AED] text-white"
+                  : "border-white/20 text-white/80 hover:border-white/40"
               }`}
             >
               {c}
@@ -296,68 +308,108 @@ export default function NewEventPage() {
       </Field>
 
       <Field label="Involved Clubs & Domains">
-        <div className="space-y-3">
+        <div className="space-y-4">
           {form.involvedClubs.map((entry, i) => {
             const club = clubs.find((c) => c._id === entry.club);
 
             return (
-              <div key={i} className="space-y-2">
+              <div
+                key={i}
+                className="space-y-3 p-4 rounded-xl bg-white/5 border border-white/10"
+              >
+                <div className="flex justify-between items-center">
+                  <h3 className="text-white font-medium text-sm">
+                    Club {i + 1}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setForm((prev) => ({
+                        ...prev,
+                        involvedClubs: prev.involvedClubs.filter(
+                          (_, idx) => idx !== i,
+                        ),
+                      }))
+                    }
+                    className="text-sm text-red-400 hover:text-red-300"
+                  >
+                    Remove
+                  </button>
+                </div>
+
                 <select
                   value={entry.club}
                   onChange={(e) => updateClub(i, e.target.value)}
-                  className="w-full rounded-xl bg-[#0F0F14] border border-white/20 px-4 py-3 text-white outline-none"
+                  className="w-full rounded-xl bg-[#1a1a2e] px-4 py-3 text-white text-sm border border-white/10 focus:border-purple-500/50 focus:outline-none"
                 >
-                  <option value="">Select club</option>
+                  <option
+                    value=""
+                    disabled
+                    className="bg-[#1a1a2e] text-white/60"
+                  >
+                    Select a club
+                  </option>
                   {clubs.map((c) => (
                     <option
                       key={c._id}
                       value={c._id}
-                      className="bg-[#0F0F14] text-white"
+                      className="bg-[#1a1a2e] text-white"
                     >
                       {c.name}
                     </option>
                   ))}
                 </select>
 
-                <select
-                  multiple
-                  value={entry.domains}
-                  disabled={!club}
-                  onChange={(e) =>
-                    updateDomains(
-                      i,
-                      Array.from(e.target.selectedOptions).map(
-                        (o) => o.value as string,
-                      ),
-                    )
-                  }
-                  className="w-full h-40 rounded-xl bg-[#0F0F14] border border-white/20 px-4 py-2 text-white outline-none"
-                >
-                  {club?.domains.map((d: any) => (
-                    <option
-                      key={d.name}
-                      value={d.name}
-                      className="bg-[#0F0F14] text-white"
-                    >
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
+                {club && (
+                  <div>
+                    <label className="text-sm text-white/60 mb-1 block">
+                      Domains <span className="text-red-400">*</span>
+                    </label>
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    setForm((prev) => ({
-                      ...prev,
-                      involvedClubs: prev.involvedClubs.filter(
-                        (_, idx) => idx !== i,
-                      ),
-                    }))
-                  }
-                  className="text-sm text-red-400"
-                >
-                  Remove
-                </button>
+                    {entry.domains.length > 0 && (
+                      <div className="mb-3 p-2 bg-purple-500/10 rounded-lg">
+                        <p className="text-xs text-white/60 mb-2">Selected:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {entry.domains.map((domain) => (
+                            <span
+                              key={domain}
+                              className="px-2 py-1 rounded-full text-xs bg-purple-500/30 text-purple-200"
+                            >
+                              {domain}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <select
+                      multiple
+                      value={entry.domains}
+                      onChange={(e) =>
+                        updateDomains(
+                          i,
+                          Array.from(e.target.selectedOptions).map(
+                            (o) => o.value,
+                          ),
+                        )
+                      }
+                      className="w-full h-40 rounded-xl bg-[#1a1a2e] px-4 py-2 text-white text-sm border border-white/10 focus:border-purple-500/50 focus:outline-none"
+                    >
+                      {club.domains.map((d: any) => (
+                        <option
+                          key={d.name}
+                          value={d.name}
+                          className="bg-[#1a1a2e] text-white"
+                        >
+                          {d.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-white/40 mt-1">
+                      Hold Ctrl/Cmd to select multiple domains
+                    </p>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -365,25 +417,39 @@ export default function NewEventPage() {
           <button
             type="button"
             onClick={addClub}
-            className="text-sm text-[#7C3AED]"
+            className="w-full sm:w-auto px-4 py-2 rounded-lg bg-purple-600/30 text-purple-300 hover:bg-purple-600/40 transition text-sm"
           >
             + Add another club
           </button>
+
+          {form.involvedClubs.length === 0 && (
+            <p className="text-sm text-yellow-400/70 bg-yellow-400/10 rounded-lg p-4">
+              At least one involved club is required.
+            </p>
+          )}
         </div>
       </Field>
 
-      <Field label="Event Dates (Start to End)">
+      <Field label="Event Dates">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Input
-            type="datetime-local"
-            value={form.startDate}
-            onChange={(v) => setForm({ ...form, startDate: v })}
-          />
-          <Input
-            type="datetime-local"
-            value={form.endDate}
-            onChange={(v) => setForm({ ...form, endDate: v })}
-          />
+          <div>
+            <label className="text-xs text-white/60 mb-1 block">
+              Start Date
+            </label>
+            <Input
+              type="datetime-local"
+              value={form.startDate}
+              onChange={(v) => setForm({ ...form, startDate: v })}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-white/60 mb-1 block">End Date</label>
+            <Input
+              type="datetime-local"
+              value={form.endDate}
+              onChange={(v) => setForm({ ...form, endDate: v })}
+            />
+          </div>
         </div>
       </Field>
 
@@ -393,200 +459,183 @@ export default function NewEventPage() {
           onChange={(v) => setForm({ ...form, venue: v })}
         />
       </Field>
-      {user.role === "admin" && (
-        <label className="flex items-center gap-3 text-white/90">
-          <input
-            type="checkbox"
-            checked={form.isPinned}
-            onChange={(e) => setForm({ ...form, isPinned: e.target.checked })}
-          />
-          Pin this event
-        </label>
+
+      <Field label="Registration">
+        <div className="space-y-4">
+          <label className="flex items-center gap-3 text-white text-sm">
+            <input
+              type="checkbox"
+              checked={form.registration.isRegister}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  registration: {
+                    ...form.registration,
+                    isRegister: e.target.checked,
+                    ...(e.target.checked
+                      ? {}
+                      : { deadline: "", link: "", methodText: "" }),
+                  },
+                })
+              }
+            />
+            Registration required
+          </label>
+
+          {form.registration.isRegister && (
+            <div className="space-y-4 pl-4 sm:pl-6 border-l-2 border-purple-500/30">
+              <div>
+                <label className="text-xs text-white/60 mb-1 block">
+                  Registration Deadline <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="datetime-local"
+                  className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm border border-white/10 focus:border-purple-500/50 focus:outline-none"
+                  value={form.registration.deadline}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      registration: {
+                        ...form.registration,
+                        deadline: e.target.value,
+                      },
+                    })
+                  }
+                />
+              </div>
+
+              <input
+                className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm border border-white/10 focus:border-purple-500/50 focus:outline-none"
+                placeholder="Registration link (optional)"
+                value={form.registration.link}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    registration: {
+                      ...form.registration,
+                      link: e.target.value,
+                    },
+                  })
+                }
+              />
+
+              <textarea
+                rows={2}
+                className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm border border-white/10 focus:border-purple-500/50 focus:outline-none"
+                placeholder="Registration instructions (optional)"
+                value={form.registration.methodText}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    registration: {
+                      ...form.registration,
+                      methodText: e.target.value,
+                    },
+                  })
+                }
+              />
+            </div>
+          )}
+        </div>
+      </Field>
+
+      {user?.role === "admin" && (
+        <Field label="Admin Controls">
+          <label className="flex items-center gap-3 text-white text-sm">
+            <input
+              type="checkbox"
+              checked={form.isPinned}
+              onChange={(e) => setForm({ ...form, isPinned: e.target.checked })}
+            />
+            Pin this event
+          </label>
+        </Field>
       )}
-      <div className="space-y-2">
-        <p className="text-white/80">Registration</p>
-
-        <label className="flex items-center gap-3 text-white/90">
-          <input
-            type="checkbox"
-            checked={form.registration.isRegister}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                registration: {
-                  ...form.registration,
-                  isRegister: e.target.checked,
-                },
-              })
-            }
-          />
-          Registration required
-        </label>
-
-        {form.registration.isRegister && (
-          <>
-            <input
-              type="datetime-local"
-              className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white"
-              value={form.registration.deadline}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  registration: {
-                    ...form.registration,
-                    deadline: e.target.value,
-                  },
-                })
-              }
-            />
-
-            <input
-              className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white"
-              placeholder="Registration link (optional)"
-              value={form.registration.link}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  registration: {
-                    ...form.registration,
-                    link: e.target.value,
-                  },
-                })
-              }
-            />
-
-            <input
-              className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white"
-              placeholder="Registration method text (optional)"
-              value={form.registration.methodText}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  registration: {
-                    ...form.registration,
-                    methodText: e.target.value,
-                  },
-                })
-              }
-            />
-          </>
-        )}
-      </div>
 
       <button
         onClick={submit}
         disabled={submitting}
-        className="w-full mt-6 px-6 py-3 rounded-xl bg-[#7C3AED] font-semibold hover:bg-[#6D28D9]"
+        className="w-full mt-6 px-6 py-3 rounded-xl bg-[#7C3AED] text-white font-semibold hover:bg-[#6D28D9] transition disabled:opacity-50 text-sm sm:text-base"
       >
-        {user.role === "admin" ? "Create Event" : "Send for Approval"}
+        {user?.role === "admin" ? "Create Event" : "Send for Approval"}
       </button>
-
-      <style jsx>{`
-        .select-dark {
-          background: #0f0f14;
-          color: white;
-          border-radius: 0.75rem;
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          padding: 0.75rem 1rem;
-          outline: none;
-        }
-        select option {
-          background: #0f0f14;
-          color: white;
-        }
-      `}</style>
     </div>
   );
 }
 
-/* ---------- Types ---------- */
-
-type FieldProps = {
-  label: string;
-  children: React.ReactNode;
-};
-
-type InputProps = {
-  value: string;
-  onChange: (value: string) => void;
-  type?: string;
-  placeholder?: string;
-};
-
-type TextareaProps = {
-  rows: number;
-  value: string;
-  onChange: (value: string) => void;
-};
-
-type SelectOption = {
-  value: string;
-  label: string;
-};
-
-type SelectProps = {
-  value: string;
-  options: SelectOption[];
-  onChange: (value: string) => void;
-};
-
-type ChipGroupProps = {
-  values: readonly string[];
-  selected: string[];
-  onToggle: (value: string) => void;
-};
-
 /* ---------- Components ---------- */
 
-function Field({ label, children }: FieldProps) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div>
-      <p className="text-white/80 mb-1">{label}</p>
+    <div className="space-y-2">
+      <p className="text-xs sm:text-sm uppercase text-purple-300">{label}</p>
       {children}
     </div>
   );
 }
 
-function Input({ value, onChange, type = "text", placeholder }: InputProps) {
+function Input({
+  value,
+  onChange,
+  type = "text",
+  placeholder,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+  placeholder?: string;
+}) {
   return (
     <input
       type={type}
       value={value}
       placeholder={placeholder}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white outline-none"
+      className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm sm:text-base border border-white/10 focus:border-purple-500/50 focus:outline-none"
     />
   );
 }
 
-function Textarea({ rows, value, onChange }: TextareaProps) {
+function Textarea({
+  rows,
+  value,
+  onChange,
+  placeholder,
+  maxLength,
+}: {
+  rows: number;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  maxLength?: number;
+}) {
   return (
     <textarea
       rows={rows}
       value={value}
+      placeholder={placeholder}
+      maxLength={maxLength}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white outline-none"
+      className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm sm:text-base border border-white/10 focus:border-purple-500/50 focus:outline-none"
     />
   );
 }
 
-function Select({ value, options, onChange }: SelectProps) {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="select-dark w-full"
-    >
-      {options.map((o) => (
-        <option key={o.value} value={o.value}>
-          {o.label}
-        </option>
-      ))}
-    </select>
-  );
-}
-
-function ChipGroup({ values, selected, onToggle }: ChipGroupProps) {
+function ChipGroup({
+  values,
+  selected,
+  onToggle,
+}: {
+  values: readonly string[];
+  selected: string[];
+  onToggle: (value: string) => void;
+}) {
   return (
     <div className="flex flex-wrap gap-2">
       {values.map((v) => (
@@ -594,10 +643,10 @@ function ChipGroup({ values, selected, onToggle }: ChipGroupProps) {
           key={v}
           type="button"
           onClick={() => onToggle(v)}
-          className={`px-3 py-1 rounded-full text-sm border ${
+          className={`px-3 py-1 rounded-full text-xs sm:text-sm border transition ${
             selected.includes(v)
-              ? "bg-[#7C3AED] border-[#7C3AED]"
-              : "border-white/20 text-white/80"
+              ? "bg-[#7C3AED] border-[#7C3AED] text-white"
+              : "border-white/20 text-white/80 hover:border-white/40"
           }`}
         >
           {v}

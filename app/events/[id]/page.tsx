@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { Club } from "@/lib/types/club";
 
 type EventResponse = {
   event: any;
@@ -24,9 +25,20 @@ const safeImageSrc = (url?: string) => {
 export default function EventPage() {
   const { id } = useParams<{ id: string }>();
   const [event, setEvent] = useState<any>(null);
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [canEdit, setCanEdit] = useState(false);
 
   const bannerSrc = safeImageSrc(event?.bannerUrl);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((data) => {
+        setUser(data);
+      })
+      .catch(() => setUser(null));
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -40,6 +52,46 @@ export default function EventPage() {
       .catch(() => setEvent(null))
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    if (!event || !user?.user) return;
+
+    const actualUser = user.user;
+
+    // Admin can always edit
+    if (actualUser.role === "admin") {
+      setCanEdit(true);
+      return;
+    }
+
+    // Check if user is level 1 in any involved club
+    const checkEditPermission = async () => {
+      for (const entry of event.involvedClubs) {
+        try {
+          const res = await fetch(`/api/clubs/${entry.club._id}`);
+          const club = await res.json();
+
+          if (!club) continue;
+
+          const maxLevel = Math.max(...club.ranks.map((r: any) => r.level));
+          const topRanks = club.ranks.filter((r: any) => r.level === maxLevel);
+
+          const isHead = topRanks.some((rank: any) =>
+            rank.users.some((u: any) => u.srn === actualUser.srn),
+          );
+
+          if (isHead) {
+            setCanEdit(true);
+            return;
+          }
+        } catch (error) {
+          console.error("Error checking club permissions:", error);
+        }
+      }
+    };
+
+    checkEditPermission();
+  }, [event, user]);
 
   if (loading) {
     return (
@@ -97,29 +149,63 @@ export default function EventPage() {
               </ol>
             </nav>
 
-            <div className="flex flex-col gap-3">
-              <h1 className="text-2xl sm:text-4xl font-extrabold text-white">
-                {event.name}
-              </h1>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="space-y-3">
+                <h1 className="text-2xl sm:text-4xl font-extrabold text-white">
+                  {event.name}
+                </h1>
 
-              <div className="flex flex-wrap gap-2">
-                {event.categories?.map((c: string) => (
-                  <span
-                    key={c}
-                    className="px-3 py-1 rounded-full text-xs bg-purple-500/15 border border-purple-500/30 text-purple-200"
-                  >
-                    {c}
-                  </span>
-                ))}
-                {event.tags?.map((t: string) => (
-                  <span
-                    key={t}
-                    className="px-3 py-1 rounded-full text-xs bg-white/10 border border-white/20 text-white/70"
-                  >
-                    {t}
-                  </span>
-                ))}
+                <div className="flex flex-wrap gap-2">
+                  {event.categories?.map((c: string) => (
+                    <span
+                      key={c}
+                      className="px-3 py-1 rounded-full text-xs bg-purple-500/15 border border-purple-500/30 text-purple-200"
+                    >
+                      {c}
+                    </span>
+                  ))}
+                  {event.tags?.map((t: string) => (
+                    <span
+                      key={t}
+                      className="px-3 py-1 rounded-full text-xs bg-white/10 border border-white/20 text-white/70"
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
               </div>
+
+              {canEdit && (
+                <Link href={`/events/${event._id}/edit`}>
+                  <button
+                    className="
+                      relative px-6 py-2.5
+                      rounded-full font-bold text-sm sm:text-base
+                      text-white
+                      bg-linear-to-br from-[#7C3AED] via-[#9333EA] to-[#A855F7]
+                      shadow-[0_0_22px_rgba(168,85,247,0.8)]
+                      border border-purple-300/40
+                      transition-all duration-200
+                      hover:shadow-[0_0_36px_rgba(168,85,247,1)]
+                      hover:scale-[1.04]
+                      active:scale-[0.97]
+                      overflow-hidden
+                      cursor-pointer
+                      whitespace-nowrap
+                    "
+                  >
+                    <span className="relative z-10">Edit Event</span>
+                    <span
+                      className="
+                        absolute inset-0
+                        bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.25),transparent)]
+                        opacity-0 hover:opacity-100
+                        transition-opacity
+                      "
+                    />
+                  </button>
+                </Link>
+              )}
             </div>
           </div>
         </div>
