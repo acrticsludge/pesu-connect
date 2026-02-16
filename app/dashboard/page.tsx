@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 
@@ -10,6 +10,7 @@ interface User {
   name: string;
   email: string;
   role: "admin" | "student";
+  profilePic: string;
 }
 
 interface Club {
@@ -114,6 +115,8 @@ export default function DashboardPage() {
     "overview" | "requests" | "logs" | "admin"
   >("overview");
 
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     loadDashboardData();
   }, []);
@@ -147,8 +150,8 @@ export default function DashboardPage() {
       const meRes = await fetch("/api/auth/me");
       const meData = await meRes.json();
       const currentUser = meData.user;
-      setUser(currentUser);
 
+      setUser(currentUser);
       if (currentUser?.role === "admin") {
         const [
           clubPending,
@@ -240,6 +243,54 @@ export default function DashboardPage() {
     }
   };
 
+  const handleProfilePicUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File size must be less than 5MB");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    setUploading(true);
+    const toastId = toast.loading("Uploading...");
+
+    try {
+      const res = await fetch("/api/upload/profile-pic", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || "Upload failed", { id: toastId });
+        return;
+      }
+
+      setUser((prev) => (prev ? { ...prev, profilePic: data.url } : null));
+      toast.success("Profile picture updated!", { id: toastId });
+    } catch {
+      toast.error("Upload failed", { id: toastId });
+    } finally {
+      setUploading(false);
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
   const confirmClubCreation = async (id: string) => {
     const toastId = toast.loading("Creating club...");
     try {
@@ -368,23 +419,64 @@ export default function DashboardPage() {
     <div className="max-w-7xl mx-auto px-4 py-6 sm:py-10 space-y-8">
       <div className="flex items-start gap-4">
         <div className="relative group">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-white text-2xl sm:text-3xl font-bold">
-            {user.name.charAt(0)}
-          </div>
-          <button className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#1a1a2e] border-2 border-purple-500 rounded-full flex items-center justify-center text-purple-400 hover:text-purple-300 transition">
-            <svg
-              className="w-3 h-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-linear-to-br from-purple-600 to-pink-600 flex items-center justify-center text-white text-2xl sm:text-3xl font-bold overflow-hidden">
+            {user.profilePic ? (
+              <img
+                src={user.profilePic}
+                alt={user.name}
+                className="w-full h-full object-cover"
               />
-            </svg>
+            ) : (
+              user.name.charAt(0)
+            )}
+          </div>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleProfilePicUpload}
+            accept="image/*"
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#1a1a2e] border-2 border-purple-500 rounded-full flex items-center justify-center text-purple-400 hover:text-purple-300 transition disabled:opacity-50"
+          >
+            {uploading ? (
+              <svg
+                className="w-3 h-3 animate-spin"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
+              </svg>
+            ) : (
+              <svg
+                className="w-3 h-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                />
+              </svg>
+            )}
           </button>
         </div>
         <div className="flex-1">

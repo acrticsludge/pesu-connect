@@ -8,20 +8,21 @@ const UserSchema = new Schema(
       unique: true,
       index: true,
     },
-
     name: {
       type: String,
       required: true,
     },
-
     email: {
       type: String,
       required: true,
     },
-
     role: {
       type: String,
       default: "student",
+    },
+    profilePic: {
+      type: String,
+      default: null,
     },
   },
   { timestamps: true },
