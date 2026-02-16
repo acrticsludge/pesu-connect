@@ -22,11 +22,12 @@ export async function PATCH(
   const { id } = await context.params;
   const data = await req.json();
   const token = (await cookies()).get("auth_token")?.value;
-  if (!token) return NextResponse.json({ user: null });
+  if (!token)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const payload = verifyToken(token);
-  if (!payload) return NextResponse.json({ user: null });
-
+  if (!payload)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   await connectDB();
   const user = await User.findById(payload.sub).select("name srn email role");
   const actualUser = user.user;
@@ -190,7 +191,9 @@ export async function DELETE(
 
   await connectDB();
   const user = await User.findById(payload.sub).select("srn role");
-
+  if (!user) {
+    return NextResponse.json({ error: "User not found" }, { status: 401 });
+  }
   const club = await Club.findById(id);
   if (!club) {
     return NextResponse.json({ error: "Club not found" }, { status: 404 });

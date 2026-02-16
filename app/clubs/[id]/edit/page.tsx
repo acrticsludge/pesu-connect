@@ -414,9 +414,12 @@ export default function EditClubPage() {
                 className="flex-1 rounded-lg bg-white/10 px-3 py-3 text-white"
                 value={rank.name}
                 onChange={(e) => {
-                  const r = [...club.ranks];
-                  r[i].name = e.target.value;
-                  setClub({ ...club, ranks: r });
+                  setClub({
+                    ...club,
+                    ranks: club.ranks.map((rank, idx) =>
+                      idx === i ? { ...rank, name: e.target.value } : rank,
+                    ),
+                  });
                 }}
               />
 
