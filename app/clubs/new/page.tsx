@@ -10,7 +10,6 @@ export default function AddClubPage() {
   const [user, setUser] = useState<any>(null);
 
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -49,7 +48,6 @@ export default function AddClubPage() {
     }
 
     setSubmitting(true);
-    setError(null);
 
     const endpoint =
       user.role === "admin" ? "/api/clubs/create" : "/api/club-requests";

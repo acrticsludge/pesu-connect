@@ -76,6 +76,7 @@ export async function PATCH(
     })();
 
   const scope = getClubEditScope({ user, club });
+  console.log(scope);
 
   if (
     scope === "NONE" &&

@@ -82,7 +82,7 @@ export async function PATCH(
 
     const updates = await req.json();
 
-    if (updates.isPinned !== undefined && user.role !== "ADMIN") {
+    if (updates.isPinned !== undefined && user.role !== "admin") {
       delete updates.isPinned;
     }
 

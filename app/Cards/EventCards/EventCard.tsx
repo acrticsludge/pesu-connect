@@ -14,6 +14,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   TECHNICAL: "bg-blue-600/20 text-blue-200",
   CULTURAL: "bg-pink-600/20 text-pink-200",
   SPORTS: "bg-green-600/20 text-green-200",
+  DEFAULT: "bg-gray-600/20 text-gray-200",
 };
 
 const getDaysLeft = (deadline?: Date) => {
@@ -32,10 +33,11 @@ const isValidImageUrl = (url?: string) => {
   }
 };
 
+const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 function highlight(text: string, query: string) {
   if (!query.trim()) return text;
 
-  const words = query.toLowerCase().split(" ").filter(Boolean);
+  const words = query.toLowerCase().split(" ").filter(Boolean).map(escapeRegex);
   const regex = new RegExp(`(${words.join("|")})`, "gi");
 
   return text.split(regex).map((part, i) =>
@@ -146,19 +148,15 @@ export default function EventCard({
           {regStatus && (
             <span className="relative inline-flex">
               {regStatus.pulse && (
-                <span className="absolute inset-0 rounded-full bg-green-400/40 animate-ping" />
+                <span
+                  className={`absolute inset-0 rounded-full bg-${regStatus.color}-400/40 animate-ping`}
+                />
               )}
               <span
                 className={`relative px-3 py-1 rounded-full text-xs font-semibold backdrop-blur ${regStatus.color}`}
               >
                 {regStatus.label}
               </span>
-            </span>
-          )}
-
-          {daysLeft !== null && daysLeft <= 2 && daysLeft >= 0 && (
-            <span className="bg-red-500/90 text-white text-xs px-3 py-1 rounded-full animate-pulse">
-              Closing Soon
             </span>
           )}
         </div>
@@ -175,7 +173,7 @@ export default function EventCard({
           {event.categories.map((cat) => (
             <span
               key={cat}
-              className={`text-xs px-2 py-1 rounded-full font-semibold ${CATEGORY_COLORS[cat]}`}
+              className={`text-xs px-2 py-1 rounded-full font-semibold ${CATEGORY_COLORS[cat] ?? CATEGORY_COLORS.DEFAULT}`}
             >
               {cat}
             </span>
