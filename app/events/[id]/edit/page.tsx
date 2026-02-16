@@ -257,7 +257,7 @@ export default function EditEventPage() {
         </span>
         <span>›</span>
         <span
-          className="cursor-pointer hover:text-white truncate max-w-[150px] sm:max-w-xs"
+          className="cursor-pointer hover:text-white truncate max-w-37.5 sm:max-w-xs"
           onClick={() => router.push(`/events/${event._id}`)}
         >
           {event.name}

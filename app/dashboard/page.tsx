@@ -1,321 +1,927 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import toast from "react-hot-toast";
 
-type ClubRequest = {
+interface User {
+  _id: string;
+  srn: string;
+  name: string;
+  email: string;
+  role: "admin" | "student";
+}
+
+interface Club {
+  _id: string;
+  name: string;
+  domains: Array<{
+    name: string;
+    ranks: Array<{
+      name: string;
+      level: number;
+      users: Array<{ srn: string }>;
+    }>;
+  }>;
+  ranks: Array<{
+    name: string;
+    level: number;
+    users: Array<{ srn: string }>;
+  }>;
+}
+
+interface UserClub {
+  club: Club;
+  roles: {
+    clubRanks: string[];
+    domainRoles: Array<{
+      domain: string;
+      ranks: string[];
+    }>;
+  };
+}
+
+interface ClubRequest {
   _id: string;
   clubData: {
     name: string;
     shortDescription: string;
+    foundedOn: string;
+    bannerUrl?: string;
+    instagram?: string;
+    staffName: string;
+    staffDepartment: string;
   };
   requestedBy: {
     name: string;
     srn: string;
     email: string;
   };
+  handledBy?: {
+    name: string;
+  };
   status: "pending" | "approved" | "rejected" | "completed";
   adminRemark?: string;
-};
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface EventRequest {
+  _id: string;
+  eventData: {
+    name: string;
+    shortDescription: string;
+    fullDescription: string;
+    bannerUrl: string;
+    venue: string;
+    campus: "EC" | "RR";
+    startDate: string;
+    endDate: string;
+    category: string;
+    tag: string;
+    involvedClubs: Array<{
+      club: { _id: string; name: string };
+      domain: string;
+    }>;
+  };
+  requestedBy: {
+    name: string;
+    srn: string;
+    email: string;
+  };
+  handledBy?: {
+    name: string;
+  };
+  status: "pending" | "approved" | "rejected" | "completed";
+  adminRemark?: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<any>(null);
-  const [requests, setRequests] = useState<ClubRequest[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [userClubs, setUserClubs] = useState<UserClub[]>([]);
+  const [clubRequests, setClubRequests] = useState<ClubRequest[]>([]);
+  const [eventRequests, setEventRequests] = useState<EventRequest[]>([]);
+  const [adminClubRequests, setAdminClubRequests] = useState<ClubRequest[]>([]);
+  const [adminEventRequests, setAdminEventRequests] = useState<EventRequest[]>(
+    [],
+  );
+  const [clubLogs, setClubLogs] = useState<ClubRequest[]>([]);
+  const [eventLogs, setEventLogs] = useState<EventRequest[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const [view, setView] = useState<"pending" | "logs">("pending");
-  const [logs, setLogs] = useState<ClubRequest[]>([]);
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "requests" | "logs" | "admin"
+  >("overview");
 
   useEffect(() => {
-    fetch("/api/auth/me")
-      .then((res) => res.json())
-      .then((data) => {
-        setUser(data.user);
-        if (data.user?.role === "admin") {
-          return fetch("/api/admin/club-requests?status=pending");
-        }
-        return fetch("/api/club-requests/me");
-      })
-      .then((res) => res.json())
-      .then((data) => {
-        setRequests(data.requests || []);
-        setLoading(false);
-      })
-      .catch(() => {
-        toast.error("Failed to load dashboard");
-        setLoading(false);
-      });
+    loadDashboardData();
   }, []);
 
-  const confirmCreation = async (id: string) => {
-    const toastId = toast.loading("Creating club…");
+  const safeFetch = async (url: string) => {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        if (res.status === 404) {
+          console.warn(`Endpoint ${url} not found`);
+          return { requests: [] };
+        }
+        const text = await res.text();
+        console.warn(`Failed to fetch ${url}:`, text.substring(0, 100));
+        return { requests: [] };
+      }
+      const contentType = res.headers.get("content-type");
+      if (!contentType?.includes("application/json")) {
+        console.warn(`Non-JSON response from ${url}:`, contentType);
+        return { requests: [] };
+      }
+      return await res.json();
+    } catch (error) {
+      console.warn(`Error fetching ${url}:`, error);
+      return { requests: [] };
+    }
+  };
 
+  const loadDashboardData = async () => {
+    try {
+      const meRes = await fetch("/api/auth/me");
+      const meData = await meRes.json();
+      const currentUser = meData.user;
+      setUser(currentUser);
+
+      if (currentUser?.role === "admin") {
+        const [
+          clubPending,
+          eventPending,
+          clubApproved,
+          clubRejected,
+          clubCompleted,
+        ] = await Promise.all([
+          safeFetch("/api/admin/club-requests?status=pending"),
+          safeFetch("/api/admin/events/requests?status=pending"),
+          safeFetch("/api/admin/club-requests?status=approved"),
+          safeFetch("/api/admin/club-requests?status=rejected"),
+          safeFetch("/api/admin/club-requests?status=completed"),
+        ]);
+
+        setAdminClubRequests(clubPending.requests || []);
+        setAdminEventRequests(eventPending.requests || []);
+
+        const allClubLogs = [
+          ...(clubApproved.requests || []),
+          ...(clubRejected.requests || []),
+          ...(clubCompleted.requests || []),
+        ].sort(
+          (a: any, b: any) =>
+            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+        );
+
+        setClubLogs(allClubLogs);
+        setEventLogs([]);
+      } else {
+        const [clubsRes, clubRequestsData, eventRequestsData] =
+          await Promise.all([
+            fetch("/api/clubs"),
+            safeFetch("/api/club-requests/me"),
+            safeFetch("/api/events/requests/me"),
+          ]);
+
+        const allClubs = await clubsRes.json();
+
+        const userClubRoles: UserClub[] = [];
+
+        for (const club of allClubs) {
+          const clubRanks: string[] = [];
+          const domainRoles: { domain: string; ranks: string[] }[] = [];
+
+          for (const rank of club.ranks || []) {
+            if (rank.users?.some((u: any) => u.srn === currentUser.srn)) {
+              clubRanks.push(rank.name);
+            }
+          }
+
+          for (const domain of club.domains || []) {
+            const domainRankNames: string[] = [];
+            for (const rank of domain.ranks || []) {
+              if (rank.users?.some((u: any) => u.srn === currentUser.srn)) {
+                domainRankNames.push(rank.name);
+              }
+            }
+            if (domainRankNames.length > 0) {
+              domainRoles.push({
+                domain: domain.name,
+                ranks: domainRankNames,
+              });
+            }
+          }
+
+          if (clubRanks.length > 0 || domainRoles.length > 0) {
+            userClubRoles.push({
+              club,
+              roles: {
+                clubRanks,
+                domainRoles,
+              },
+            });
+          }
+        }
+
+        setUserClubs(userClubRoles);
+
+        setClubRequests(clubRequestsData.requests || []);
+        setEventRequests(eventRequestsData.requests || []);
+      }
+
+      setLoading(false);
+    } catch (error) {
+      console.error("Failed to load dashboard:", error);
+      toast.error("Failed to load dashboard");
+      setLoading(false);
+    }
+  };
+
+  const confirmClubCreation = async (id: string) => {
+    const toastId = toast.loading("Creating club...");
     try {
       const res = await fetch(`/api/club-requests/${id}/confirm`, {
         method: "POST",
       });
-
       const data = await res.json();
-
       if (!res.ok) {
-        toast.error(data.error || "Failed to confirm club creation", {
-          id: toastId,
-        });
+        toast.error(data.error || "Failed to confirm", { id: toastId });
         return;
       }
-
-      toast.success("Club created successfully 🎉", { id: toastId });
-
-      setRequests((prev) =>
+      toast.success("Club created successfully!", { id: toastId });
+      setClubRequests((prev) =>
         prev.map((r) => (r._id === id ? { ...r, status: "completed" } : r)),
       );
-    } catch {
-      toast.error("Network error. Please try again.", { id: toastId });
-    }
-  };
 
-  const loadLogs = async () => {
-    const toastId = toast.loading("Loading request logs…");
+      const [approved, rejected, completed] = await Promise.all([
+        safeFetch("/api/admin/club-requests?status=approved"),
+        safeFetch("/api/admin/club-requests?status=rejected"),
+        safeFetch("/api/admin/club-requests?status=completed"),
+      ]);
 
-    try {
-      const statuses = ["approved", "rejected", "completed"];
-      const results: ClubRequest[] = [];
-
-      for (const status of statuses) {
-        const res = await fetch(`/api/admin/club-requests?status=${status}`);
-        const data = await res.json();
-        if (data.requests) {
-          results.push(...data.requests);
-        }
-      }
-
-      results.sort(
+      const allClubLogs = [
+        ...(approved.requests || []),
+        ...(rejected.requests || []),
+        ...(completed.requests || []),
+      ].sort(
         (a: any, b: any) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
       );
 
-      setLogs(results);
-      toast.success("Logs loaded", { id: toastId });
+      setClubLogs(allClubLogs);
     } catch {
-      toast.error("Failed to load logs", { id: toastId });
+      toast.error("Network error", { id: toastId });
     }
   };
 
-  const handleAction = async (id: string, action: "approve" | "reject") => {
-    const toastId = toast.loading(
-      action === "approve" ? "Approving request…" : "Rejecting request…",
-    );
-
+  const handleAdminClubAction = async (
+    id: string,
+    action: "approve" | "reject",
+  ) => {
+    const toastId = toast.loading(`${action}ing request...`);
     try {
       const res = await fetch(`/api/admin/club-requests/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action }),
       });
-
       const data = await res.json();
-
       if (!res.ok) {
         toast.error(data.error || "Action failed", { id: toastId });
         return;
       }
+      toast.success(`Request ${action}d`, { id: toastId });
+      setAdminClubRequests((prev) => prev.filter((r) => r._id !== id));
 
-      toast.success(
-        action === "approve" ? "Request approved ✅" : "Request rejected ❌",
-        { id: toastId },
+      const [approved, rejected, completed] = await Promise.all([
+        safeFetch("/api/admin/club-requests?status=approved"),
+        safeFetch("/api/admin/club-requests?status=rejected"),
+        safeFetch("/api/admin/club-requests?status=completed"),
+      ]);
+
+      const allClubLogs = [
+        ...(approved.requests || []),
+        ...(rejected.requests || []),
+        ...(completed.requests || []),
+      ].sort(
+        (a: any, b: any) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
       );
 
-      setRequests((prev) => prev.filter((r) => r._id !== id));
+      setClubLogs(allClubLogs);
     } catch {
-      toast.error("Network error. Please try again.", { id: toastId });
+      toast.error("Network error", { id: toastId });
     }
+  };
+
+  const handleAdminEventAction = async (
+    id: string,
+    action: "approve" | "reject",
+  ) => {
+    const toastId = toast.loading(`${action}ing request...`);
+    try {
+      const res = await fetch(`/api/admin/events/requests/${id}/${action}`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Action failed", { id: toastId });
+        return;
+      }
+      toast.success(`Request ${action}d`, { id: toastId });
+      setAdminEventRequests((prev) => prev.filter((r) => r._id !== id));
+    } catch {
+      toast.error("Network error", { id: toastId });
+    }
+  };
+
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
   };
 
   if (loading) {
     return (
-      <div className="py-20 text-center text-white">Loading dashboard...</div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-white/60">Loading dashboard...</div>
+      </div>
     );
   }
 
-  // ---------------- ADMIN VIEW ----------------
-  if (user?.role === "admin") {
+  if (!user) {
     return (
-      <div className="max-w-5xl mx-auto px-6 py-10">
-        <h1 className="text-3xl font-bold text-white mb-6">
-          Club Creation Requests
-        </h1>
-        <div className="flex gap-3 mb-6">
-          <button
-            onClick={() => setView("pending")}
-            className={`px-4 py-2 rounded-lg ${
-              view === "pending"
-                ? "bg-[#7C3AED] text-white"
-                : "bg-white/10 text-white/70"
-            }`}
-          >
-            Pending
-          </button>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-red-400">Please log in to view dashboard</div>
+      </div>
+    );
+  }
 
-          <button
-            onClick={() => {
-              setView("logs");
-              loadLogs();
-            }}
-            className={`px-4 py-2 rounded-lg ${
-              view === "logs"
-                ? "bg-[#7C3AED] text-white"
-                : "bg-white/10 text-white/70"
-            }`}
-          >
-            Logs
+  return (
+    <div className="max-w-7xl mx-auto px-4 py-6 sm:py-10 space-y-8">
+      <div className="flex items-start gap-4">
+        <div className="relative group">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-white text-2xl sm:text-3xl font-bold">
+            {user.name.charAt(0)}
+          </div>
+          <button className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#1a1a2e] border-2 border-purple-500 rounded-full flex items-center justify-center text-purple-400 hover:text-purple-300 transition">
+            <svg
+              className="w-3 h-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+              />
+            </svg>
           </button>
         </div>
+        <div className="flex-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">
+            Dashboard
+          </h1>
+          <p className="text-sm text-white/60 mt-1">
+            {user.name} • {user.srn}
+          </p>
+          {user.role === "admin" && (
+            <span className="inline-block mt-2 px-3 py-1 rounded-full text-xs bg-purple-500/20 text-purple-300 border border-purple-500/30">
+              Admin
+            </span>
+          )}
+        </div>
+      </div>
 
-        {view === "pending" && (
-          <div>
-            {requests.length === 0 && (
-              <div className="text-white/60">No pending requests</div>
-            )}
-            <div className="space-y-4">
-              {requests.map((req) => (
-                <div
-                  key={req._id}
-                  className="rounded-xl border border-white/10 bg-white/5 p-5"
-                >
-                  <h2 className="text-xl font-semibold text-white">
-                    {req.clubData.name}
-                  </h2>
-                  <p className="text-white/70 mt-1">
-                    {req.clubData.shortDescription}
-                  </p>
-
-                  <div className="text-sm text-white/60 mt-3">
-                    Requested by {req.requestedBy.name} ({req.requestedBy.srn})
-                  </div>
-
-                  <div className="flex gap-3 mt-4">
-                    <button
-                      onClick={() => handleAction(req._id, "approve")}
-                      className="px-4 py-2 rounded-lg bg-green-600 text-white"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => handleAction(req._id, "reject")}
-                      className="px-4 py-2 rounded-lg bg-red-600 text-white"
-                    >
-                      Reject
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <button
+          onClick={() => setActiveTab("overview")}
+          className={`p-4 rounded-xl border text-left transition ${
+            activeTab === "overview"
+              ? "bg-purple-600/20 border-purple-500/50"
+              : "bg-white/5 border-white/10 hover:bg-white/10"
+          }`}
+        >
+          <div className="text-sm text-white/60">Overview</div>
+          <div className="text-xl font-bold text-white mt-1">
+            {user.role === "admin"
+              ? `${adminClubRequests.length + adminEventRequests.length} Pending`
+              : `${userClubs.length} Clubs`}
           </div>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("requests")}
+          className={`p-4 rounded-xl border text-left transition ${
+            activeTab === "requests"
+              ? "bg-purple-600/20 border-purple-500/50"
+              : "bg-white/5 border-white/10 hover:bg-white/10"
+          }`}
+        >
+          <div className="text-sm text-white/60">Requests</div>
+          <div className="text-xl font-bold text-white mt-1">
+            {user.role === "admin"
+              ? `${adminClubRequests.length + adminEventRequests.length} Pending`
+              : `${clubRequests.length + eventRequests.length} Total`}
+          </div>
+        </button>
+
+        {user.role === "admin" && (
+          <button
+            onClick={() => setActiveTab("logs")}
+            className={`p-4 rounded-xl border text-left transition ${
+              activeTab === "logs"
+                ? "bg-purple-600/20 border-purple-500/50"
+                : "bg-white/5 border-white/10 hover:bg-white/10"
+            }`}
+          >
+            <div className="text-sm text-white/60">Logs</div>
+            <div className="text-xl font-bold text-white mt-1">
+              {clubLogs.length} History
+            </div>
+          </button>
         )}
-        {view === "logs" && (
-          <div className="space-y-4">
-            {logs.length === 0 && (
-              <div className="text-white/60">No handled requests yet.</div>
-            )}
 
-            {logs.map((req) => (
-              <div
-                key={req._id}
-                className="rounded-xl border border-white/10 bg-white/5 p-5"
-              >
-                <h2 className="text-xl font-semibold text-white">
-                  {req.clubData.name}
-                </h2>
+        {user.role === "admin" && (
+          <button
+            onClick={() => setActiveTab("admin")}
+            className={`p-4 rounded-xl border text-left transition ${
+              activeTab === "admin"
+                ? "bg-purple-600/20 border-purple-500/50"
+                : "bg-white/5 border-white/10 hover:bg-white/10"
+            }`}
+          >
+            <div className="text-sm text-white/60">Admin</div>
+            <div className="text-xl font-bold text-white mt-1">Controls</div>
+          </button>
+        )}
+      </div>
 
-                <p className="text-white/70 mt-1">
-                  {req.clubData.shortDescription}
+      {activeTab === "overview" && (
+        <div className="space-y-8">
+          <section className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
+            <h2 className="text-lg font-bold text-white mb-4">
+              Profile Information
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-3 rounded-xl bg-white/5">
+                <p className="text-xs text-white/40">Full Name</p>
+                <p className="text-white font-medium mt-1">{user.name}</p>
+              </div>
+              <div className="p-3 rounded-xl bg-white/5">
+                <p className="text-xs text-white/40">SRN</p>
+                <p className="text-white font-medium mt-1">{user.srn}</p>
+              </div>
+              <div className="p-3 rounded-xl bg-white/5 sm:col-span-2">
+                <p className="text-xs text-white/40">Email</p>
+                <p className="text-white font-medium mt-1 break-all">
+                  {user.email}
                 </p>
+              </div>
+            </div>
+          </section>
 
-                <div className="text-sm text-white/60 mt-2">
-                  Requested by {req.requestedBy.name} ({req.requestedBy.srn})
-                </div>
-
-                <div className="mt-3 text-sm">
-                  Status:{" "}
-                  <span
-                    className={`font-semibold capitalize ${
-                      req.status === "approved"
-                        ? "text-green-400"
-                        : req.status === "rejected"
-                          ? "text-red-400"
-                          : "text-blue-400"
-                    }`}
+          {user.role !== "admin" && (
+            <section className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
+              <h2 className="text-lg font-bold text-white mb-4">
+                My Clubs & Roles
+              </h2>
+              {userClubs.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-white/60">
+                    You are not part of any clubs yet.
+                  </p>
+                  <Link
+                    href="/clubs"
+                    className="inline-block mt-4 px-4 py-2 rounded-lg bg-purple-600/30 text-purple-300 text-sm hover:bg-purple-600/40"
                   >
-                    {req.status}
-                  </span>
+                    Browse Clubs
+                  </Link>
                 </div>
+              ) : (
+                <div className="space-y-4">
+                  {userClubs.map(({ club, roles }) => (
+                    <div
+                      key={club._id}
+                      className="p-4 rounded-xl bg-white/5 border border-white/10"
+                    >
+                      <Link
+                        href={`/clubs/${club._id}`}
+                        className="text-lg font-semibold text-white hover:text-purple-400"
+                      >
+                        {club.name}
+                      </Link>
 
-                {req.adminRemark && (
-                  <div className="mt-2 text-sm text-white/60">
-                    Admin remark: {req.adminRemark}
+                      {roles.clubRanks.length > 0 && (
+                        <div className="mt-3">
+                          <p className="text-xs text-white/40 mb-2">
+                            Club Roles
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {roles.clubRanks.map((rank) => (
+                              <span
+                                key={rank}
+                                className="px-2 py-1 rounded-full text-xs bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                              >
+                                {rank}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {roles.domainRoles.length > 0 && (
+                        <div className="mt-4">
+                          <p className="text-xs text-white/40 mb-2">
+                            Domain Roles
+                          </p>
+                          <div className="space-y-3">
+                            {roles.domainRoles.map((dr) => (
+                              <div
+                                key={dr.domain}
+                                className="pl-3 border-l-2 border-purple-500/30"
+                              >
+                                <p className="text-sm text-white/80">
+                                  {dr.domain}
+                                </p>
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                  {dr.ranks.map((rank) => (
+                                    <span
+                                      key={rank}
+                                      className="px-2 py-1 rounded-full text-xs bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                                    >
+                                      {rank}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+        </div>
+      )}
+
+      {activeTab === "requests" && (
+        <div className="space-y-8">
+          {user.role === "admin" ? (
+            <>
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
+                <h2 className="text-lg font-bold text-white mb-4">
+                  Pending Club Requests
+                </h2>
+                {adminClubRequests.length === 0 ? (
+                  <p className="text-white/60 text-center py-4">
+                    No pending club requests
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {adminClubRequests.map((req) => (
+                      <div
+                        key={req._id}
+                        className="p-4 rounded-xl bg-white/5 border border-yellow-500/30"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                          <div className="flex-1">
+                            <h3 className="text-white font-semibold">
+                              {req.clubData.name}
+                            </h3>
+                            <p className="text-sm text-white/60 mt-1">
+                              {req.clubData.shortDescription}
+                            </p>
+                            <div className="flex flex-wrap gap-3 mt-2 text-xs text-white/40">
+                              <span>By: {req.requestedBy.name}</span>
+                              <span>SRN: {req.requestedBy.srn}</span>
+                              <span>{formatDate(req.createdAt)}</span>
+                            </div>
+                          </div>
+                          <span className="px-2 py-1 rounded-full text-xs bg-yellow-500/20 text-yellow-300 w-fit">
+                            Pending
+                          </span>
+                        </div>
+                        <div className="flex gap-2 mt-4">
+                          <button
+                            onClick={() =>
+                              handleAdminClubAction(req._id, "approve")
+                            }
+                            className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm hover:bg-green-700"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() =>
+                              handleAdminClubAction(req._id, "reject")
+                            }
+                            className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm hover:bg-red-700"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
+              </section>
 
-  // ---------------- STUDENT VIEW ----------------
-  if (user?.role === "student") {
-    return (
-      <div className="max-w-3xl mx-auto px-6 py-10">
-        <h1 className="text-3xl font-bold text-white mb-6">
-          Your Club Requests
-        </h1>
-
-        {requests.length === 0 && (
-          <div className="text-white/60">
-            You haven’t submitted any club requests yet.
-          </div>
-        )}
-
-        <div className="space-y-4">
-          {requests.map((req) => (
-            <div
-              key={req._id}
-              className="rounded-xl border border-white/10 bg-white/5 p-5"
-            >
-              <h2 className="text-xl font-semibold text-white">
-                {req.clubData.name}
-              </h2>
-
-              <p className="text-white/70 mt-2">
-                Status:{" "}
-                <span className="font-semibold capitalize">{req.status}</span>
-              </p>
-
-              {req.status === "approved" && (
-                <div className="mt-4">
-                  <p className="text-green-400 mb-2">
-                    Approved! Confirm to officially create the club.
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
+                <h2 className="text-lg font-bold text-white mb-4">
+                  Pending Event Requests
+                </h2>
+                {adminEventRequests.length === 0 ? (
+                  <p className="text-white/60 text-center py-4">
+                    No pending event requests
                   </p>
-                  <button
-                    onClick={() => confirmCreation(req._id)}
-                    className="px-4 py-2 rounded-lg bg-[#7C3AED] text-white font-semibold hover:bg-[#6D28D9]"
-                  >
-                    Confirm Creation
-                  </button>
-                </div>
-              )}
+                ) : (
+                  <div className="space-y-4">
+                    {adminEventRequests.map((req) => (
+                      <div
+                        key={req._id}
+                        className="p-4 rounded-xl bg-white/5 border border-yellow-500/30"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                          <div className="flex-1">
+                            <h3 className="text-white font-semibold">
+                              {req.eventData.name}
+                            </h3>
+                            <p className="text-sm text-white/60 mt-1">
+                              {req.eventData.shortDescription}
+                            </p>
+                            <div className="flex flex-wrap gap-3 mt-2 text-xs text-white/40">
+                              <span>By: {req.requestedBy.name}</span>
+                              <span>SRN: {req.requestedBy.srn}</span>
+                              <span>{formatDate(req.createdAt)}</span>
+                            </div>
+                          </div>
+                          <span className="px-2 py-1 rounded-full text-xs bg-yellow-500/20 text-yellow-300 w-fit">
+                            Pending
+                          </span>
+                        </div>
+                        <div className="flex gap-2 mt-4">
+                          <button
+                            onClick={() =>
+                              handleAdminEventAction(req._id, "approve")
+                            }
+                            className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm hover:bg-green-700"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() =>
+                              handleAdminEventAction(req._id, "reject")
+                            }
+                            className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm hover:bg-red-700"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </>
+          ) : (
+            <>
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
+                <h2 className="text-lg font-bold text-white mb-4">
+                  My Club Requests
+                </h2>
+                {clubRequests.length === 0 ? (
+                  <p className="text-white/60 text-center py-4">
+                    No club requests found
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {clubRequests.map((req) => (
+                      <div
+                        key={req._id}
+                        className="p-4 rounded-xl bg-white/5 border border-white/10"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                          <div className="flex-1">
+                            <h3 className="text-white font-semibold">
+                              {req.clubData.name}
+                            </h3>
+                            <p className="text-sm text-white/60 mt-1">
+                              {req.clubData.shortDescription}
+                            </p>
+                            <p className="text-xs text-white/40 mt-2">
+                              {formatDate(req.createdAt)}
+                            </p>
+                          </div>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs w-fit ${
+                              req.status === "approved"
+                                ? "bg-green-500/20 text-green-300"
+                                : req.status === "rejected"
+                                  ? "bg-red-500/20 text-red-300"
+                                  : req.status === "completed"
+                                    ? "bg-blue-500/20 text-blue-300"
+                                    : "bg-yellow-500/20 text-yellow-300"
+                            }`}
+                          >
+                            {req.status}
+                          </span>
+                        </div>
+                        {req.status === "approved" && (
+                          <button
+                            onClick={() => confirmClubCreation(req._id)}
+                            className="mt-4 w-full sm:w-auto px-4 py-2 rounded-lg bg-[#7C3AED] text-white text-sm hover:bg-[#6D28D9]"
+                          >
+                            Confirm Creation
+                          </button>
+                        )}
+                        {req.status === "rejected" && req.adminRemark && (
+                          <div className="mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/30">
+                            <p className="text-xs text-red-400">
+                              Reason: {req.adminRemark}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
 
-              {req.status === "rejected" && req.adminRemark && (
-                <p className="text-red-400 mt-2">Rejected: {req.adminRemark}</p>
-              )}
-            </div>
-          ))}
+              <section className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
+                <h2 className="text-lg font-bold text-white mb-4">
+                  My Event Requests
+                </h2>
+                {eventRequests.length === 0 ? (
+                  <p className="text-white/60 text-center py-4">
+                    No event requests found
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {eventRequests.map((req) => (
+                      <div
+                        key={req._id}
+                        className="p-4 rounded-xl bg-white/5 border border-white/10"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                          <div className="flex-1">
+                            <h3 className="text-white font-semibold">
+                              {req.eventData.name}
+                            </h3>
+                            <p className="text-sm text-white/60 mt-1">
+                              {req.eventData.shortDescription}
+                            </p>
+                            <p className="text-xs text-white/40 mt-2">
+                              {formatDate(req.createdAt)}
+                            </p>
+                          </div>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs w-fit ${
+                              req.status === "approved"
+                                ? "bg-green-500/20 text-green-300"
+                                : req.status === "rejected"
+                                  ? "bg-red-500/20 text-red-300"
+                                  : req.status === "completed"
+                                    ? "bg-blue-500/20 text-blue-300"
+                                    : "bg-yellow-500/20 text-yellow-300"
+                            }`}
+                          >
+                            {req.status}
+                          </span>
+                        </div>
+                        {req.status === "rejected" && req.adminRemark && (
+                          <div className="mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/30">
+                            <p className="text-xs text-red-400">
+                              Reason: {req.adminRemark}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </>
+          )}
         </div>
-      </div>
-    );
-  }
+      )}
 
-  return <div className="text-white p-10">Dashboard</div>;
+      {activeTab === "logs" && user.role === "admin" && (
+        <div className="space-y-8">
+          <section className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
+            <h2 className="text-lg font-bold text-white mb-4">
+              Club Request History
+            </h2>
+            {clubLogs.length === 0 ? (
+              <p className="text-white/60 text-center py-4">
+                No club request history
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {clubLogs.map((req) => (
+                  <div
+                    key={req._id}
+                    className="p-4 rounded-xl bg-white/5 border border-white/10"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                      <div className="flex-1">
+                        <h3 className="text-white font-semibold">
+                          {req.clubData.name}
+                        </h3>
+                        <p className="text-sm text-white/60 mt-1">
+                          {req.clubData.shortDescription}
+                        </p>
+                        <div className="flex flex-wrap gap-3 mt-2 text-xs text-white/40">
+                          <span>By: {req.requestedBy.name}</span>
+                          <span>SRN: {req.requestedBy.srn}</span>
+                          <span>Email: {req.requestedBy.email}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-3 mt-1 text-xs text-white/40">
+                          <span>Requested: {formatDate(req.createdAt)}</span>
+                          <span>Updated: {formatDate(req.updatedAt)}</span>
+                        </div>
+                        {req.handledBy && (
+                          <p className="text-xs text-purple-400 mt-2">
+                            Handled by: {req.handledBy.name}
+                          </p>
+                        )}
+                        {req.adminRemark && (
+                          <p className="text-xs text-white/40 mt-1">
+                            Remark: {req.adminRemark}
+                          </p>
+                        )}
+                      </div>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs w-fit ${
+                          req.status === "approved"
+                            ? "bg-green-500/20 text-green-300"
+                            : req.status === "rejected"
+                              ? "bg-red-500/20 text-red-300"
+                              : req.status === "completed"
+                                ? "bg-blue-500/20 text-blue-300"
+                                : "bg-yellow-500/20 text-yellow-300"
+                        }`}
+                      >
+                        {req.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+      )}
+
+      {activeTab === "admin" && user.role === "admin" && (
+        <section className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
+          <h2 className="text-lg font-bold text-white mb-4">Admin Controls</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Link
+              href="/admin/clubs"
+              className="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition"
+            >
+              <h3 className="text-white font-semibold">Manage Clubs</h3>
+              <p className="text-sm text-white/60 mt-1">
+                View and manage all clubs
+              </p>
+            </Link>
+            <Link
+              href="/admin/events"
+              className="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition"
+            >
+              <h3 className="text-white font-semibold">Manage Events</h3>
+              <p className="text-sm text-white/60 mt-1">
+                View and manage all events
+              </p>
+            </Link>
+            <Link
+              href="/admin/users"
+              className="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition"
+            >
+              <h3 className="text-white font-semibold">Manage Users</h3>
+              <p className="text-sm text-white/60 mt-1">
+                View and manage users
+              </p>
+            </Link>
+            <div className="p-4 rounded-xl bg-white/5 border border-white/10 opacity-50 cursor-not-allowed">
+              <h3 className="text-white font-semibold">Announcements</h3>
+              <p className="text-sm text-white/60 mt-1">Coming soon</p>
+            </div>
+          </div>
+        </section>
+      )}
+    </div>
+  );
 }
