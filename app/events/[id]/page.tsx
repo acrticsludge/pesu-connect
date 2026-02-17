@@ -89,7 +89,7 @@ export default function EventPage() {
                   </Link>
                 </li>
                 <span>›</span>
-                <li className="text-white font-medium truncate max-w-[200px] sm:max-w-md">
+                <li className="text-white font-medium truncate max-w-50 sm:max-w-md">
                   {event.name}
                 </li>
               </ol>
@@ -123,7 +123,7 @@ export default function EventPage() {
 
               {canEdit && (
                 <Link href={`/events/${event._id}/edit`} className="shrink-0">
-                  <button className="relative px-6 py-2.5 rounded-full font-bold text-sm sm:text-base text-white bg-gradient-to-br from-[#7C3AED] via-[#9333EA] to-[#A855F7] shadow-[0_0_22px_rgba(168,85,247,0.8)] border border-purple-300/40 transition-all duration-200 hover:shadow-[0_0_36px_rgba(168,85,247,1)] hover:scale-[1.04] active:scale-[0.97] overflow-hidden cursor-pointer whitespace-nowrap">
+                  <button className="relative px-6 py-2.5 rounded-full font-bold text-sm sm:text-base text-white bg-linear-to-br from-[#7C3AED] via-[#9333EA] to-[#A855F7] shadow-[0_0_22px_rgba(168,85,247,0.8)] border border-purple-300/40 transition-all duration-200 hover:shadow-[0_0_36px_rgba(168,85,247,1)] hover:scale-[1.04] active:scale-[0.97] overflow-hidden cursor-pointer whitespace-nowrap">
                     <span className="relative z-10">Edit Event</span>
                     <span className="absolute inset-0 bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.25),transparent)] opacity-0 hover:opacity-100 transition-opacity" />
                   </button>

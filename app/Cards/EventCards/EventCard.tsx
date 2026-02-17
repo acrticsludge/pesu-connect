@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { BaseEventData } from "@/lib/types/event";
+import { useMemo } from "react";
 
 const TAG_COLORS: Record<string, string> = {
   WORKSHOP: "bg-blue-500/15 text-blue-300 border border-blue-400/30",
@@ -17,11 +18,24 @@ const CATEGORY_COLORS: Record<string, string> = {
   DEFAULT: "bg-gray-600/20 text-gray-200",
 };
 
-const getDaysLeft = (deadline?: Date) => {
-  if (!deadline) return null;
-  const diff = new Date(deadline).getTime() - Date.now();
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
-};
+const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+function highlight(text: string, query: string) {
+  if (!query?.trim()) return text;
+
+  const words = query.toLowerCase().split(" ").filter(Boolean).map(escapeRegex);
+  const regex = new RegExp(`(${words.join("|")})`, "gi");
+
+  return text.split(regex).map((part, i) =>
+    regex.test(part) ? (
+      <mark key={i} className="bg-purple-500/30 text-purple-200 rounded px-0.5">
+        {part}
+      </mark>
+    ) : (
+      part
+    ),
+  );
+}
 
 const isValidImageUrl = (url?: string) => {
   if (!url) return false;
@@ -33,44 +47,28 @@ const isValidImageUrl = (url?: string) => {
   }
 };
 
-const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-function highlight(text: string, query: string) {
-  if (!query.trim()) return text;
-
-  const words = query.toLowerCase().split(" ").filter(Boolean).map(escapeRegex);
-  const regex = new RegExp(`(${words.join("|")})`, "gi");
-
-  return text.split(regex).map((part, i) =>
-    regex.test(part) ? (
-      <mark key={i} className="bg-purple-500/30 text-purple-200 rounded px-1">
-        {part}
-      </mark>
-    ) : (
-      part
-    ),
-  );
-}
-
 export default function EventCard({
   event,
-  query,
+  query = "",
 }: {
   event: BaseEventData;
   query?: string;
 }) {
   const reg = event.registration;
 
-  const regDeadline = reg?.deadline ? new Date(reg.deadline) : null;
-  const isPast = new Date(event.endDate).getTime() < Date.now();
-  const isRegClosed = !!regDeadline && regDeadline.getTime() < Date.now();
+  const regStatus = useMemo(() => {
+    if (!reg?.isRegister) return null;
 
-  const daysLeft =
-    regDeadline && !isRegClosed
-      ? Math.ceil((regDeadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    const now = Date.now();
+    const endDate = new Date(event.endDate).getTime();
+    const isPast = endDate < now;
+
+    const regDeadline = reg?.deadline ? new Date(reg.deadline).getTime() : null;
+    const isRegClosed = regDeadline ? regDeadline < now : false;
+    const daysLeft = regDeadline
+      ? Math.ceil((regDeadline - now) / (1000 * 60 * 60 * 24))
       : null;
 
-  const regStatus = (() => {
-    if (!reg?.isRegister) return null;
     if (isPast) {
       return {
         label: "Event Ended",
@@ -108,18 +106,41 @@ export default function EventCard({
       color: "bg-blue-500/20 text-blue-300 border border-blue-500/30",
       pulse: false,
     };
-  })();
+  }, [reg, event.endDate]);
 
-  const imageSrc = isValidImageUrl(event.bannerUrl)
-    ? event.bannerUrl
-    : "/images/event-placeholder.png";
+  const imageSrc = useMemo(
+    () =>
+      isValidImageUrl(event.bannerUrl)
+        ? event.bannerUrl
+        : "/images/event-placeholder.png",
+    [event.bannerUrl],
+  );
 
-  const regDeadlineText = event.registration?.deadline
-    ? new Date(event.registration.deadline).toLocaleDateString("en-IN", {
-        day: "numeric",
-        month: "short",
-      })
-    : null;
+  const regDeadlineText = useMemo(
+    () =>
+      event.registration?.deadline
+        ? new Date(event.registration.deadline).toLocaleDateString("en-IN", {
+            day: "numeric",
+            month: "short",
+          })
+        : null,
+    [event.registration?.deadline],
+  );
+
+  const daysLeft = useMemo(() => {
+    if (!reg?.deadline) return null;
+    const now = Date.now();
+    const deadline = new Date(reg.deadline).getTime();
+    if (deadline < now) return null;
+    return Math.ceil((deadline - now) / (1000 * 60 * 60 * 24));
+  }, [reg?.deadline]);
+
+  const now = Date.now();
+  const endDate = new Date(event.endDate).getTime();
+  const isPast = endDate < now;
+  const isRegClosed = reg?.deadline
+    ? new Date(reg.deadline).getTime() < now
+    : false;
 
   return (
     <div
@@ -130,30 +151,31 @@ export default function EventCard({
         shadow-[0_8px_30px_rgba(0,0,0,0.25)]
         transition-all duration-300
         active:scale-[0.98]
-        md:group
         md:hover:-translate-y-1
         md:hover:shadow-[0_25px_60px_rgba(124,58,237,0.4)]
+        h-full flex flex-col
       "
     >
-      <div className="relative h-36 sm:h-40 md:h-44 w-full overflow-hidden rounded-t-2xl">
+      <div className="relative h-32 sm:h-36 md:h-40 w-full overflow-hidden rounded-t-2xl shrink-0">
         <Image
           src={imageSrc}
           alt={event.name}
           fill
-          className="object-cover group-hover:scale-110 transition-transform duration-700"
+          sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
+          className="object-cover md:group-hover:scale-110 transition-transform duration-700"
+          loading="lazy"
         />
 
         <div className="absolute inset-0 bg-black/35" />
-        <div className="absolute top-3 right-3 z-20 flex flex-col gap-2 items-end">
+
+        <div className="absolute top-2 right-2 sm:top-3 sm:right-3 z-20 flex flex-col gap-1.5 sm:gap-2 items-end">
           {regStatus && (
             <span className="relative inline-flex">
               {regStatus.pulse && (
-                <span
-                  className={`absolute inset-0 rounded-full bg-${regStatus.color}-400/40 animate-ping`}
-                />
+                <span className="absolute inset-0 rounded-full bg-red-400/40 animate-ping" />
               )}
               <span
-                className={`relative px-3 py-1 rounded-full text-xs font-semibold backdrop-blur ${regStatus.color}`}
+                className={`relative px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-semibold backdrop-blur whitespace-nowrap ${regStatus.color}`}
               >
                 {regStatus.label}
               </span>
@@ -162,57 +184,59 @@ export default function EventCard({
         </div>
 
         {event.isPinned && !isPast && (
-          <span className="absolute top-3 left-3 bg-purple-600/90 text-white text-xs px-3 py-1 rounded-full shadow">
+          <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-purple-600/90 text-white text-[10px] sm:text-xs px-2 sm:px-3 py-0.5 sm:py-1 rounded-full shadow">
             📌 Pinned
           </span>
         )}
       </div>
 
-      <div className="p-4 space-y-3">
-        <div className="flex gap-2 flex-wrap">
-          {event.categories.map((cat) => (
+      <div className="p-3 sm:p-4 space-y-2 sm:space-y-3 flex-1 flex flex-col">
+        <div className="flex gap-1.5 sm:gap-2 flex-wrap items-start">
+          {event.categories?.map((cat) => (
             <span
               key={cat}
-              className={`text-xs px-2 py-1 rounded-full font-semibold ${CATEGORY_COLORS[cat] ?? CATEGORY_COLORS.DEFAULT}`}
+              className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full font-semibold ${CATEGORY_COLORS[cat] ?? CATEGORY_COLORS.DEFAULT}`}
             >
               {cat}
             </span>
           ))}
 
-          <span className="ml-auto text-xs text-white/60">{event.campus}</span>
+          <span className="ml-auto text-[10px] sm:text-xs text-white/60 shrink-0">
+            {event.campus}
+          </span>
         </div>
 
-        <div className="flex gap-2 flex-wrap">
-          {event.tags.map((tag) => (
+        <div className="flex gap-1.5 sm:gap-2 flex-wrap">
+          {event.tags?.map((tag) => (
             <span
               key={tag}
-              className={`text-xs px-2 py-1 rounded-full ${TAG_COLORS[tag]}`}
+              className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full ${TAG_COLORS[tag]}`}
             >
               {tag}
             </span>
           ))}
         </div>
 
-        <h3 className="text-base sm:text-lg font-semibold text-white">
+        <h3 className="text-sm sm:text-base md:text-lg font-semibold text-white leading-tight line-clamp-2">
           {query ? highlight(event.name, query) : event.name}
         </h3>
 
-        <p className="text-sm text-white/70 line-clamp-2">
+        <p className="text-xs sm:text-sm text-white/70 line-clamp-2 flex-1">
           {query
-            ? highlight(event.shortDescription, query)
+            ? highlight(event.shortDescription || "", query)
             : event.shortDescription}
         </p>
 
-        {daysLeft !== null && daysLeft >= 0 && (
-          <div className="flex justify-between items-center pt-2 text-xs">
+        {daysLeft !== null && daysLeft >= 0 && !isPast && !isRegClosed && (
+          <div className="flex justify-between items-center pt-1 sm:pt-2 text-[10px] sm:text-xs border-t border-white/10 mt-auto">
             {regDeadlineText && (
-              <span className="text-purple-300 font-medium">
+              <span className="text-purple-300 font-medium truncate max-w-[60%]">
                 Register by {regDeadlineText}
               </span>
             )}
 
             <span
-              className={`font-medium ${
+              className={`font-medium shrink-0 ${
                 daysLeft <= 2
                   ? "text-red-400"
                   : daysLeft <= 5
