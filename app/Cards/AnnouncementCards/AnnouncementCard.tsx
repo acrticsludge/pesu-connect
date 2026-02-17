@@ -1,4 +1,5 @@
 import { formatDistanceToNow } from "date-fns";
+import { useMemo } from "react";
 
 interface AnnouncementCardProps {
   announcement: {
@@ -29,7 +30,7 @@ const typeStyles = {
 const typeIcons = {
   info: (
     <svg
-      className="w-5 h-5"
+      className="w-4 h-4 sm:w-5 sm:h-5"
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
@@ -44,7 +45,7 @@ const typeIcons = {
   ),
   warning: (
     <svg
-      className="w-5 h-5"
+      className="w-4 h-4 sm:w-5 sm:h-5"
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
@@ -59,7 +60,7 @@ const typeIcons = {
   ),
   success: (
     <svg
-      className="w-5 h-5"
+      className="w-4 h-4 sm:w-5 sm:h-5"
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
@@ -74,7 +75,7 @@ const typeIcons = {
   ),
   patch: (
     <svg
-      className="w-5 h-5"
+      className="w-4 h-4 sm:w-5 sm:h-5"
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
@@ -89,7 +90,7 @@ const typeIcons = {
   ),
   event: (
     <svg
-      className="w-5 h-5"
+      className="w-4 h-4 sm:w-5 sm:h-5"
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
@@ -110,67 +111,87 @@ export default function AnnouncementCard({
   onDelete,
   onEdit,
 }: AnnouncementCardProps) {
+  const timeAgo = useMemo(
+    () =>
+      formatDistanceToNow(new Date(announcement.createdAt), {
+        addSuffix: true,
+      }),
+    [announcement.createdAt],
+  );
+
+  const contentParagraphs = useMemo(
+    () => announcement.content.split("\n").filter((p) => p.trim()),
+    [announcement.content],
+  );
+
   return (
     <div
-      className={`relative p-5 rounded-xl border ${typeStyles[announcement.type]} bg-white/5 backdrop-blur`}
+      className={`
+        relative p-4 sm:p-5 pt-6 sm:pt-7 rounded-xl border 
+        ${typeStyles[announcement.type]} 
+        bg-white/5 backdrop-blur
+        transition-all active:scale-[0.99]
+        ${announcement.pinned ? "ring-1 ring-yellow-500/50" : ""}
+      `}
     >
       {announcement.pinned && (
-        <div className="absolute -top-2 -right-2">
-          <span className="px-2 py-1 text-xs rounded-full bg-red-500/20 text-red-300 border border-red-500/30">
+        <div className="absolute top-8 right-4 sm:right-6 -translate-y-1/2 z-10">
+          <span className="px-2 sm:px-2.5 py-0.5 sm:py-1 text-[10px] sm:text-xs rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 shadow-lg backdrop-blur whitespace-nowrap">
             📌 Pinned
           </span>
         </div>
       )}
-
-      <div className="flex items-start gap-3">
-        <div className={`p-2 rounded-lg ${typeStyles[announcement.type]}`}>
+      <div className="flex items-start gap-2 sm:gap-3">
+        <div
+          className={`p-1.5 sm:p-2 rounded-lg shrink-0 ${typeStyles[announcement.type]}`}
+        >
           {typeIcons[announcement.type]}
         </div>
 
-        <div className="flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="text-lg font-semibold text-white">
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2">
+            <h3 className="text-base sm:text-lg font-semibold text-white wrap-break-word">
               {announcement.title}
             </h3>
             {announcement.version && (
-              <span className="px-2 py-0.5 rounded-full text-xs bg-white/10 text-white/70">
+              <span className="px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs bg-white/10 text-white/70 whitespace-nowrap">
                 v{announcement.version}
               </span>
             )}
             <span
-              className={`px-2 py-0.5 rounded-full text-xs ${typeStyles[announcement.type]}`}
+              className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs ${typeStyles[announcement.type]} whitespace-nowrap`}
             >
               {announcement.type}
             </span>
           </div>
 
-          <div className="mt-3 text-white/80 prose prose-invert max-w-none">
-            {announcement.content.split("\n").map((paragraph, i) => (
-              <p key={i} className="text-sm sm:text-base">
+          <div className="mt-2 sm:mt-3 text-white/80 prose prose-invert max-w-none">
+            {contentParagraphs.map((paragraph, i) => (
+              <p
+                key={i}
+                className="text-xs sm:text-sm md:text-base mb-2 last:mb-0 wrap-break-word"
+              >
                 {paragraph}
               </p>
             ))}
           </div>
 
-          <div className="mt-4 flex items-center justify-between flex-wrap gap-2">
-            <div className="text-xs text-white/40">
-              Posted by {announcement.createdBy.name} •{" "}
-              {formatDistanceToNow(new Date(announcement.createdAt), {
-                addSuffix: true,
-              })}
+          <div className="mt-3 sm:mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+            <div className="text-[10px] sm:text-xs text-white/40 order-2 sm:order-1">
+              Posted by {announcement.createdBy.name} • {timeAgo}
             </div>
 
             {isAdmin && (
-              <div className="flex gap-2">
+              <div className="flex gap-1.5 sm:gap-2 order-1 sm:order-2">
                 <button
                   onClick={() => onEdit?.(announcement)}
-                  className="px-3 py-1 rounded-lg bg-blue-500/20 text-blue-300 text-xs hover:bg-blue-500/30 transition"
+                  className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-blue-500/20 text-blue-300 text-[10px] sm:text-xs hover:bg-blue-500/30 transition active:scale-95"
                 >
                   Edit
                 </button>
                 <button
                   onClick={() => onDelete?.(announcement._id)}
-                  className="px-3 py-1 rounded-lg bg-red-500/20 text-red-300 text-xs hover:bg-red-500/30 transition"
+                  className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-red-500/20 text-red-300 text-[10px] sm:text-xs hover:bg-red-500/30 transition active:scale-95"
                 >
                   Delete
                 </button>
