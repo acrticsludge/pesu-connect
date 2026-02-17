@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import AnnouncementCard from "../Cards/AnnouncementCards/AnnouncementCard";
+import CreateAnnouncementModal from "../Cards/AnnouncementCards/createAnnouncementModal";
 
 interface User {
   _id: string;
@@ -112,11 +114,16 @@ export default function DashboardPage() {
   const [eventLogs, setEventLogs] = useState<EventRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<
-    "overview" | "requests" | "logs" | "admin"
+    "overview" | "requests" | "logs" | "admin" | "announcements"
   >("overview");
 
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingAnnouncement, setEditingAnnouncement] = useState<any>(null);
+
   useEffect(() => {
     loadDashboardData();
   }, []);
@@ -145,13 +152,19 @@ export default function DashboardPage() {
     }
   };
 
+  const fetchAnnouncements = async () => {
+    const data = await safeFetch("/api/announcements");
+    setAnnouncements(data.announcements || []);
+  };
+
   const loadDashboardData = async () => {
     try {
       const meRes = await fetch("/api/auth/me");
       const meData = await meRes.json();
       const currentUser = meData.user;
-
+      await fetchAnnouncements();
       setUser(currentUser);
+
       if (currentUser?.role === "admin") {
         const [
           clubPending,
@@ -243,13 +256,28 @@ export default function DashboardPage() {
     }
   };
 
+  const handleDeleteAnnouncement = async (id: string) => {
+    if (!confirm("Delete this announcement?")) return;
+
+    const toastId = toast.loading("Deleting...");
+    try {
+      const res = await fetch(`/api/announcements/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error();
+      toast.success("Deleted!", { id: toastId });
+      fetchAnnouncements();
+    } catch {
+      toast.error("Failed to delete", { id: toastId });
+    }
+  };
+
   const handleProfilePicUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith("image/")) {
       toast.error("Please select an image file");
       return;
@@ -291,6 +319,7 @@ export default function DashboardPage() {
       }
     }
   };
+
   const confirmClubCreation = async (id: string) => {
     const toastId = toast.loading("Creating club...");
     try {
@@ -494,7 +523,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <button
           onClick={() => setActiveTab("overview")}
           className={`p-4 rounded-xl border text-left transition ${
@@ -554,6 +583,22 @@ export default function DashboardPage() {
           >
             <div className="text-sm text-white/60">Admin</div>
             <div className="text-xl font-bold text-white mt-1">Controls</div>
+          </button>
+        )}
+
+        {user.role !== "admin" && (
+          <button
+            onClick={() => setActiveTab("announcements")}
+            className={`p-4 rounded-xl border text-left transition ${
+              activeTab === "announcements"
+                ? "bg-purple-600/20 border-purple-500/50"
+                : "bg-white/5 border-white/10 hover:bg-white/10"
+            }`}
+          >
+            <div className="text-sm text-white/60">Announcements</div>
+            <div className="text-xl font-bold text-white mt-1">
+              {announcements.length} Updates
+            </div>
           </button>
         )}
       </div>
@@ -977,41 +1022,164 @@ export default function DashboardPage() {
       )}
 
       {activeTab === "admin" && user.role === "admin" && (
-        <section className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
-          <h2 className="text-lg font-bold text-white mb-4">Admin Controls</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Link
-              href="/admin/clubs"
-              className="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition"
-            >
-              <h3 className="text-white font-semibold">Manage Clubs</h3>
-              <p className="text-sm text-white/60 mt-1">
-                View and manage all clubs
-              </p>
-            </Link>
-            <Link
-              href="/admin/events"
-              className="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition"
-            >
-              <h3 className="text-white font-semibold">Manage Events</h3>
-              <p className="text-sm text-white/60 mt-1">
-                View and manage all events
-              </p>
-            </Link>
-            <Link
-              href="/admin/users"
-              className="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition"
-            >
-              <h3 className="text-white font-semibold">Manage Users</h3>
-              <p className="text-sm text-white/60 mt-1">
-                View and manage users
-              </p>
-            </Link>
-            <div className="p-4 rounded-xl bg-white/5 border border-white/10 opacity-50 cursor-not-allowed">
-              <h3 className="text-white font-semibold">Announcements</h3>
-              <p className="text-sm text-white/60 mt-1">Coming soon</p>
+        <div className="space-y-8">
+          <section className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-bold text-white">Admin Controls</h2>
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Link
+                href="/clubs"
+                className="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition"
+              >
+                <h3 className="text-white font-semibold">Manage Clubs</h3>
+                <p className="text-sm text-white/60 mt-1">
+                  View and manage all clubs
+                </p>
+              </Link>
+              <Link
+                href="/events"
+                className="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition"
+              >
+                <h3 className="text-white font-semibold">Manage Events</h3>
+                <p className="text-sm text-white/60 mt-1">
+                  View and manage all events
+                </p>
+              </Link>
+              <Link
+                href="/admin/users"
+                className="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition"
+              >
+                <h3 className="text-white font-semibold">Manage Users</h3>
+                <p className="text-sm text-white/60 mt-1">
+                  View and manage users
+                </p>
+              </Link>
+              <button
+                onClick={() => {
+                  setEditingAnnouncement(null);
+                  setShowCreateModal(true);
+                }}
+                className="p-4 rounded-xl bg-purple-600/30 text-purple-300 border border-purple-500/30 hover:bg-purple-600/40 transition text-left"
+              >
+                <h3 className="text-white font-semibold">New Announcement</h3>
+                <p className="text-sm text-white/60 mt-1">
+                  Post updates, patch notes, etc.
+                </p>
+              </button>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-bold text-white">Announcements</h2>
+              {announcements.length > 0 && (
+                <span className="text-sm text-white/40">
+                  {announcements.length} total
+                </span>
+              )}
+            </div>
+
+            {announcements.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/5 flex items-center justify-center">
+                  <svg
+                    className="w-8 h-8 text-white/40"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"
+                    />
+                  </svg>
+                </div>
+                <p className="text-white/60">No announcements yet</p>
+                <button
+                  onClick={() => {
+                    setEditingAnnouncement(null);
+                    setShowCreateModal(true);
+                  }}
+                  className="mt-4 px-4 py-2 rounded-lg bg-purple-600/30 text-purple-300 text-sm hover:bg-purple-600/40 transition"
+                >
+                  Create First Announcement
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {announcements.map((announcement) => (
+                  <AnnouncementCard
+                    key={announcement._id}
+                    announcement={announcement}
+                    isAdmin={user.role === "admin"}
+                    onDelete={handleDeleteAnnouncement}
+                    onEdit={(a) => {
+                      setEditingAnnouncement(a);
+                      setShowCreateModal(true);
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+
+          <CreateAnnouncementModal
+            isOpen={showCreateModal}
+            onClose={() => {
+              setShowCreateModal(false);
+              setEditingAnnouncement(null);
+            }}
+            onSuccess={() => {
+              fetchAnnouncements();
+            }}
+            editData={editingAnnouncement}
+          />
+        </div>
+      )}
+
+      {activeTab === "announcements" && user.role !== "admin" && (
+        <section className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-bold text-white">All Announcements</h2>
+            {announcements.length > 0 && (
+              <span className="text-sm text-white/40">
+                {announcements.length} total
+              </span>
+            )}
           </div>
+
+          {announcements.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/5 flex items-center justify-center">
+                <svg
+                  className="w-8 h-8 text-white/40"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"
+                  />
+                </svg>
+              </div>
+              <p className="text-white/60">No announcements yet</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {announcements.map((announcement) => (
+                <AnnouncementCard
+                  key={announcement._id}
+                  announcement={announcement}
+                />
+              ))}
+            </div>
+          )}
         </section>
       )}
     </div>
