@@ -1,61 +1,48 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
 export default function LoginPage() {
   const [srn, setSrn] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
-  async function handleSubmit(e: React.FormEvent) {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    const toastID = toast.loading("Logging in...");
-    setError("");
+    setIsLoading(true);
+    const toastId = toast.loading("Logging in...");
 
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ srn, password }),
-    });
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ srn: srn.toUpperCase(), password }),
+      });
 
-    if (res.ok) {
-      window.location.href = "/";
-    } else {
       const data = await res.json();
-      setError(data.error || "Login failed");
-      toast.error(data.error || "Login failed", { id: toastID });
+
+      if (!res.ok) {
+        throw new Error(data.error || "Login failed");
+      }
+
+      toast.success("Logged in successfully!", { id: toastId });
+      router.push("/");
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Login failed", {
+        id: toastId,
+      });
+    } finally {
+      setIsLoading(false);
     }
-    toast.success("Logged in successfully!", { id: toastID });
-    setLoading(false);
-  }
+  };
 
   return (
-    <div
-      className="
-        min-h-[calc(100svh-6rem)]
-        flex
-        items-center
-        justify-center
-        px-4
-        py-6
-      "
-    >
-      <div
-        className="
-          w-full
-          max-w-md
-          border
-          border-white/10
-          rounded-lg
-          p-5
-          sm:p-6
-          bg-[#0A0A0A]/50
-          backdrop-blur-sm
-        "
-      >
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-6">
+      <div className="w-full max-w-md border border-white/10 rounded-lg p-5 sm:p-6 bg-[#0A0A0A]/50 backdrop-blur-sm">
         <div className="text-center mb-8">
           <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
             Login
@@ -78,26 +65,12 @@ export default function LoginPage() {
               type="text"
               required
               value={srn}
-              onChange={(e) => setSrn(e.target.value)}
-              inputMode="text"
+              onChange={(e) => setSrn(e.target.value.toUpperCase())}
+              className="w-full px-4 py-3 text-base bg-[#0A0A0A] border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#7C3AED] disabled:opacity-50"
+              placeholder="Enter your SRN"
+              disabled={isLoading}
               autoCapitalize="characters"
               autoCorrect="off"
-              spellCheck={false}
-              className="
-                w-full
-                px-4
-                py-3
-                text-base
-                bg-[#0A0A0A]
-                border
-                border-white/10
-                rounded-lg
-                text-white
-                focus:outline-none
-                focus:ring-2
-                focus:ring-[#7C3AED]
-              "
-              placeholder="Enter your SRN"
             />
           </div>
 
@@ -114,45 +87,19 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-              enterKeyHint="done"
-              className="
-                w-full
-                px-4
-                py-3
-                text-base
-                bg-[#0A0A0A]
-                border
-                border-white/10
-                rounded-lg
-                text-white
-                focus:outline-none
-                focus:ring-2
-                focus:ring-[#7C3AED]
-              "
+              className="w-full px-4 py-3 text-base bg-[#0A0A0A] border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#7C3AED] disabled:opacity-50"
               placeholder="Enter your password"
+              disabled={isLoading}
+              autoComplete="current-password"
             />
           </div>
 
-          {error && <p className="text-sm text-red-400 text-center">{error}</p>}
-
           <button
             type="submit"
-            disabled={loading}
-            className="
-              w-full
-              px-8
-              py-3
-              bg-[#7C3AED]
-              text-white
-              rounded-lg
-              font-bold
-              hover:shadow-[0_0_20px_rgba(124,58,237,0.4)]
-              disabled:opacity-60
-              transition
-            "
+            disabled={isLoading}
+            className="w-full px-8 py-3 bg-[#7C3AED] text-white rounded-lg font-bold hover:shadow-[0_0_20px_rgba(124,58,237,0.4)] disabled:opacity-60 disabled:hover:shadow-none transition active:scale-[0.98]"
           >
-            {loading ? "Logging in..." : "Login"}
+            {isLoading ? "Logging in..." : "Login"}
           </button>
         </form>
 
