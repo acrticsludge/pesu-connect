@@ -1,15 +1,15 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import dynamic from "next/dynamic";
 import "react-quill-new/dist/quill.snow.css";
+import { useUser } from "@/lib/hooks/useUser";
+import { useClubs } from "@/lib/hooks/useClubs";
+import { useCreateEvent } from "@/lib/hooks/useCreateEvent";
 
-const ReactQuill = dynamic(() => import("react-quill-new"), {
-  ssr: false,
-});
+const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
 
 const CATEGORIES = ["TECHNICAL", "CULTURAL", "SPORTS"] as const;
 const TAGS = [
@@ -24,33 +24,24 @@ const CAMPUS = ["RR", "EC"] as const;
 
 export default function NewEventPage() {
   const router = useRouter();
-
-  const [user, setUser] = useState<any>(null);
-  const [clubs, setClubs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const { data: user, isLoading: userLoading } = useUser();
+  const { data: clubs = [], isLoading: clubsLoading } = useClubs();
+  const createEvent = useCreateEvent();
 
   const [form, setForm] = useState({
     name: "",
     shortDescription: "",
     fullDescription: "",
     bannerUrl: "",
-
-    involvedClubs: [] as {
-      club: string;
-      domains: string[];
-    }[],
-
+    involvedClubs: [] as { club: string; domains: string[] }[],
     categories: [] as string[],
     tags: [] as string[],
-
     registration: {
       isRegister: false,
       deadline: "",
       link: "",
       methodText: "",
     },
-
     startDate: "",
     endDate: "",
     venue: "",
@@ -58,39 +49,31 @@ export default function NewEventPage() {
     isPinned: false,
   });
 
-  useEffect(() => {
-    Promise.all([
-      fetch("/api/auth/me").then((r) => r.json()),
-      fetch("/api/clubs").then((r) => r.json()),
-    ]).then(([me, clubs]) => {
-      if (!me.user) {
-        router.replace("/");
-        return;
-      }
+  if (userLoading || clubsLoading) {
+    return <div className="text-center py-20 text-[#A3A3A3]">Loading...</div>;
+  }
 
-      const user = me.user;
+  if (!user) {
+    router.replace("/");
+    return null;
+  }
 
-      if (user.role !== "admin") {
-        const isHead = clubs.some((club: any) => {
-          if (!club.ranks?.length) return false;
-          const max = Math.max(...club.ranks.map((r: any) => r.level));
-          return club.ranks
-            .filter((r: any) => r.level === max)
-            .some((r: any) => r.users?.some((u: any) => u.srn === user.srn));
-        });
-
-        if (!isHead) {
-          toast.error("You are not authorized to create events");
-          router.replace("/dashboard");
-          return;
-        }
-      }
-
-      setUser(user);
-      setClubs(clubs);
-      setLoading(false);
+  const isAdmin = user.role === "admin";
+  const canCreate =
+    isAdmin ||
+    clubs.some((club) => {
+      if (!club.ranks?.length) return false;
+      const max = Math.max(...club.ranks.map((r) => r.level));
+      return club.ranks
+        .filter((r) => r.level === max)
+        .some((r) => r.users?.some((u) => u.srn === user.srn));
     });
-  }, [router]);
+
+  if (!canCreate) {
+    toast.error("You are not authorized to create events");
+    router.replace("/dashboard");
+    return null;
+  }
 
   const addClub = () => {
     setForm((prev) => ({
@@ -124,90 +107,56 @@ export default function NewEventPage() {
     }));
   };
 
-  const submit = async () => {
-    if (submitting) return;
+  const validate = () => {
+    if (!form.name.trim()) return "Event name is required";
+    if (!form.shortDescription.trim()) return "Short description is required";
+    if (!form.fullDescription.trim()) return "Full description is required";
+    if (!form.startDate || !form.endDate) return "Event dates are required";
+    if (!form.venue.trim()) return "Venue is required";
+    if (form.categories.length === 0) return "Select at least one category";
+    if (form.tags.length === 0) return "Select at least one tag";
+    if (form.involvedClubs.length === 0)
+      return "At least one involved club is required";
+    if (form.involvedClubs.some((c) => !c.club || c.domains.length === 0)) {
+      return "Select club and domains for all entries";
+    }
+    if (!form.bannerUrl.trim()) return "Banner URL is required";
+    return null;
+  };
 
-    if (!form.name.trim()) return toast.error("Event name is required");
-    if (!form.shortDescription.trim())
-      return toast.error("Short description is required");
-    if (!form.fullDescription.trim())
-      return toast.error("Full description is required");
-    if (!form.startDate || !form.endDate)
-      return toast.error("Event dates are required");
-    if (!form.venue.trim()) return toast.error("Venue is required");
-    if (form.categories.length === 0)
-      return toast.error("Select at least one category");
-    if (form.tags.length === 0) return toast.error("Select at least one tag");
-    if (
-      form.involvedClubs.length === 0 ||
-      form.involvedClubs.some((c) => !c.club || c.domains.length === 0)
-    )
-      return toast.error("Select club and domains");
-    if (!form.bannerUrl.trim()) {
-      toast.error("Banner URL is required");
+  const handleSubmit = async () => {
+    const error = validate();
+    if (error) {
+      toast.error(error);
       return;
     }
 
-    setSubmitting(true);
-
-    const endpoint =
-      user.role === "admin" ? "/api/events/create" : "/api/events/request";
-
-    const toastId = toast.loading(
-      user.role === "admin" ? "Creating event…" : "Sending event for approval…",
+    createEvent.mutate(
+      {
+        ...form,
+        startDate: new Date(form.startDate).toISOString(),
+        endDate: new Date(form.endDate).toISOString(),
+        registration: {
+          ...form.registration,
+          deadline: form.registration.deadline
+            ? new Date(form.registration.deadline).toISOString()
+            : undefined,
+        },
+      },
+      {
+        onSuccess: (data) => {
+          router.push(isAdmin ? `/events/${data._id}` : "/dashboard");
+        },
+      },
     );
-
-    try {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          startDate: new Date(form.startDate).toISOString(),
-          endDate: new Date(form.endDate).toISOString(),
-          registration: {
-            ...form.registration,
-            deadline: form.registration.deadline
-              ? new Date(form.registration.deadline).toISOString()
-              : undefined,
-          },
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        toast.error(data.error || "Something went wrong", { id: toastId });
-        return;
-      }
-
-      toast.success(
-        user.role === "admin"
-          ? "Event created successfully"
-          : "Event sent for approval",
-        { id: toastId },
-      );
-
-      router.push(user.role === "admin" ? `/events/${data._id}` : "/dashboard");
-    } finally {
-      setSubmitting(false);
-    }
   };
 
-  if (loading) {
-    return (
-      <div className="text-center py-20 text-[#A3A3A3]">
-        Checking permissions…
-      </div>
-    );
-  }
-
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6 sm:py-10 space-y-6 sm:space-y-8 text-white">
+    <div className="max-w-3xl mx-auto px-4 py-6 sm:py-10 space-y-6 sm:space-y-8 text-white overflow-x-hidden">
       <div className="space-y-2">
         <h1 className="text-2xl sm:text-3xl font-bold">Create Event</h1>
         <p className="text-sm text-white/60">
-          {user?.role === "admin"
+          {isAdmin
             ? "Fill in the details below to create a new event."
             : "Fill in the details below to request a new event. It will be reviewed by an admin."}
         </p>
@@ -217,6 +166,7 @@ export default function NewEventPage() {
         <Input
           value={form.name}
           onChange={(v) => setForm({ ...form, name: v })}
+          disabled={createEvent.isPending}
         />
       </Field>
 
@@ -227,6 +177,7 @@ export default function NewEventPage() {
           onChange={(v) => setForm({ ...form, shortDescription: v })}
           placeholder="Brief overview of the event (max 160 characters)"
           maxLength={160}
+          disabled={createEvent.isPending}
         />
       </Field>
 
@@ -239,6 +190,7 @@ export default function NewEventPage() {
             }
             placeholder="Describe the event in detail..."
             theme="snow"
+            readOnly={createEvent.isPending}
             modules={{
               toolbar: [
                 ["bold", "italic", "underline"],
@@ -247,28 +199,17 @@ export default function NewEventPage() {
                 ["clean"],
               ],
             }}
-            className="
-              text-white
-              [&_.ql-editor]:min-h-40
-              [&_.ql-editor]:text-sm
-              sm:[&_.ql-editor]:text-base
-              [&_.ql-editor]:text-white
-              [&_.ql-container]:bg-transparent
-              [&_.ql-toolbar]:bg-transparent
-              [&_.ql-toolbar]:border-white/10
-              [&_.ql-toolbar_.ql-stroke]:stroke-white
-              [&_.ql-toolbar_.ql-fill]:fill-white
-            "
+            className="text-white [&_.ql-editor]:min-h-40 [&_.ql-editor]:text-sm sm:[&_.ql-editor]:text-base [&_.ql-editor]:text-white [&_.ql-container]:bg-transparent [&_.ql-toolbar]:bg-transparent [&_.ql-toolbar]:border-white/10 [&_.ql-toolbar_.ql-stroke]:stroke-white [&_.ql-toolbar_.ql-fill]:fill-white"
           />
         </div>
       </Field>
 
       <Field label="Banner Image URL">
-        <input
-          className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm sm:text-base border border-white/10 focus:border-purple-500/50 focus:outline-none"
+        <Input
           placeholder="https://example.com/banner.jpg"
           value={form.bannerUrl}
-          onChange={(e) => setForm({ ...form, bannerUrl: e.target.value })}
+          onChange={(v) => setForm({ ...form, bannerUrl: v })}
+          disabled={createEvent.isPending}
         />
       </Field>
 
@@ -277,6 +218,7 @@ export default function NewEventPage() {
           values={CATEGORIES}
           selected={form.categories}
           onToggle={(v) => toggleMulti("categories", v)}
+          disabled={createEvent.isPending}
         />
       </Field>
 
@@ -285,6 +227,7 @@ export default function NewEventPage() {
           values={TAGS}
           selected={form.tags}
           onToggle={(v) => toggleMulti("tags", v)}
+          disabled={createEvent.isPending}
         />
       </Field>
 
@@ -295,11 +238,12 @@ export default function NewEventPage() {
               key={c}
               type="button"
               onClick={() => setForm({ ...form, campus: c })}
-              className={`px-3 py-1 rounded-full text-sm border transition ${
+              disabled={createEvent.isPending}
+              className={`px-3 py-1 rounded-full text-sm border transition active:scale-95 ${
                 form.campus === c
                   ? "bg-[#7C3AED] border-[#7C3AED] text-white"
                   : "border-white/20 text-white/80 hover:border-white/40"
-              }`}
+              } disabled:opacity-50`}
             >
               {c}
             </button>
@@ -311,7 +255,6 @@ export default function NewEventPage() {
         <div className="space-y-4">
           {form.involvedClubs.map((entry, i) => {
             const club = clubs.find((c) => c._id === entry.club);
-
             return (
               <div
                 key={i}
@@ -331,7 +274,8 @@ export default function NewEventPage() {
                         ),
                       }))
                     }
-                    className="text-sm text-red-400 hover:text-red-300"
+                    disabled={createEvent.isPending}
+                    className="text-sm text-red-400 hover:text-red-300 disabled:opacity-50"
                   >
                     Remove
                   </button>
@@ -340,7 +284,8 @@ export default function NewEventPage() {
                 <select
                   value={entry.club}
                   onChange={(e) => updateClub(i, e.target.value)}
-                  className="w-full rounded-xl bg-[#1a1a2e] px-4 py-3 text-white text-sm border border-white/10 focus:border-purple-500/50 focus:outline-none"
+                  disabled={createEvent.isPending}
+                  className="w-full rounded-xl bg-[#1a1a2e] px-4 py-3 text-white text-sm border border-white/10 focus:border-purple-500/50 focus:outline-none disabled:opacity-50"
                 >
                   <option
                     value=""
@@ -365,7 +310,6 @@ export default function NewEventPage() {
                     <label className="text-sm text-white/60 mb-1 block">
                       Domains <span className="text-red-400">*</span>
                     </label>
-
                     {entry.domains.length > 0 && (
                       <div className="mb-3 p-2 bg-purple-500/10 rounded-lg">
                         <p className="text-xs text-white/60 mb-2">Selected:</p>
@@ -381,7 +325,6 @@ export default function NewEventPage() {
                         </div>
                       </div>
                     )}
-
                     <select
                       multiple
                       value={entry.domains}
@@ -393,9 +336,10 @@ export default function NewEventPage() {
                           ),
                         )
                       }
-                      className="w-full h-40 rounded-xl bg-[#1a1a2e] px-4 py-2 text-white text-sm border border-white/10 focus:border-purple-500/50 focus:outline-none"
+                      disabled={createEvent.isPending}
+                      className="w-full h-40 rounded-xl bg-[#1a1a2e] px-4 py-2 text-white text-sm border border-white/10 focus:border-purple-500/50 focus:outline-none disabled:opacity-50"
                     >
-                      {club.domains.map((d: any) => (
+                      {club.domains?.map((d) => (
                         <option
                           key={d.name}
                           value={d.name}
@@ -417,7 +361,8 @@ export default function NewEventPage() {
           <button
             type="button"
             onClick={addClub}
-            className="w-full sm:w-auto px-4 py-2 rounded-lg bg-purple-600/30 text-purple-300 hover:bg-purple-600/40 transition text-sm"
+            disabled={createEvent.isPending}
+            className="w-full sm:w-auto px-4 py-2 rounded-lg bg-purple-600/30 text-purple-300 hover:bg-purple-600/40 transition text-sm active:scale-95 disabled:opacity-50"
           >
             + Add another club
           </button>
@@ -440,6 +385,7 @@ export default function NewEventPage() {
               type="datetime-local"
               value={form.startDate}
               onChange={(v) => setForm({ ...form, startDate: v })}
+              disabled={createEvent.isPending}
             />
           </div>
           <div>
@@ -448,6 +394,7 @@ export default function NewEventPage() {
               type="datetime-local"
               value={form.endDate}
               onChange={(v) => setForm({ ...form, endDate: v })}
+              disabled={createEvent.isPending}
             />
           </div>
         </div>
@@ -457,6 +404,7 @@ export default function NewEventPage() {
         <Input
           value={form.venue}
           onChange={(v) => setForm({ ...form, venue: v })}
+          disabled={createEvent.isPending}
         />
       </Field>
 
@@ -478,6 +426,8 @@ export default function NewEventPage() {
                   },
                 })
               }
+              disabled={createEvent.isPending}
+              className="w-4 h-4 accent-purple-500"
             />
             Registration required
           </label>
@@ -490,7 +440,7 @@ export default function NewEventPage() {
                 </label>
                 <input
                   type="datetime-local"
-                  className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm border border-white/10 focus:border-purple-500/50 focus:outline-none"
+                  className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm border border-white/10 focus:border-purple-500/50 focus:outline-none disabled:opacity-50"
                   value={form.registration.deadline}
                   onChange={(e) =>
                     setForm({
@@ -501,51 +451,46 @@ export default function NewEventPage() {
                       },
                     })
                   }
+                  disabled={createEvent.isPending}
                 />
               </div>
-
-              <input
-                className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm border border-white/10 focus:border-purple-500/50 focus:outline-none"
+              <Input
                 placeholder="Registration link (optional)"
                 value={form.registration.link}
-                onChange={(e) =>
+                onChange={(v) =>
                   setForm({
                     ...form,
-                    registration: {
-                      ...form.registration,
-                      link: e.target.value,
-                    },
+                    registration: { ...form.registration, link: v },
                   })
                 }
+                disabled={createEvent.isPending}
               />
-
-              <textarea
+              <Textarea
                 rows={2}
-                className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm border border-white/10 focus:border-purple-500/50 focus:outline-none"
                 placeholder="Registration instructions (optional)"
                 value={form.registration.methodText}
-                onChange={(e) =>
+                onChange={(v) =>
                   setForm({
                     ...form,
-                    registration: {
-                      ...form.registration,
-                      methodText: e.target.value,
-                    },
+                    registration: { ...form.registration, methodText: v },
                   })
                 }
+                disabled={createEvent.isPending}
               />
             </div>
           )}
         </div>
       </Field>
 
-      {user?.role === "admin" && (
+      {isAdmin && (
         <Field label="Admin Controls">
           <label className="flex items-center gap-3 text-white text-sm">
             <input
               type="checkbox"
               checked={form.isPinned}
               onChange={(e) => setForm({ ...form, isPinned: e.target.checked })}
+              disabled={createEvent.isPending}
+              className="w-4 h-4 accent-purple-500"
             />
             Pin this event
           </label>
@@ -553,17 +498,19 @@ export default function NewEventPage() {
       )}
 
       <button
-        onClick={submit}
-        disabled={submitting}
-        className="w-full mt-6 px-6 py-3 rounded-xl bg-[#7C3AED] text-white font-semibold hover:bg-[#6D28D9] transition disabled:opacity-50 text-sm sm:text-base"
+        onClick={handleSubmit}
+        disabled={createEvent.isPending}
+        className="w-full mt-6 px-6 py-3 rounded-xl bg-[#7C3AED] text-white font-semibold hover:bg-[#6D28D9] transition disabled:opacity-50 active:scale-[0.98] text-sm sm:text-base"
       >
-        {user?.role === "admin" ? "Create Event" : "Send for Approval"}
+        {createEvent.isPending
+          ? "Submitting..."
+          : isAdmin
+            ? "Create Event"
+            : "Send for Approval"}
       </button>
     </div>
   );
 }
-
-/* ---------- Components ---------- */
 
 function Field({
   label,
@@ -585,11 +532,13 @@ function Input({
   onChange,
   type = "text",
   placeholder,
+  disabled,
 }: {
   value: string;
   onChange: (value: string) => void;
   type?: string;
   placeholder?: string;
+  disabled?: boolean;
 }) {
   return (
     <input
@@ -597,7 +546,8 @@ function Input({
       value={value}
       placeholder={placeholder}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm sm:text-base border border-white/10 focus:border-purple-500/50 focus:outline-none"
+      disabled={disabled}
+      className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm sm:text-base border border-white/10 focus:border-purple-500/50 focus:outline-none disabled:opacity-50"
     />
   );
 }
@@ -608,12 +558,14 @@ function Textarea({
   onChange,
   placeholder,
   maxLength,
+  disabled,
 }: {
   rows: number;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   maxLength?: number;
+  disabled?: boolean;
 }) {
   return (
     <textarea
@@ -622,7 +574,8 @@ function Textarea({
       placeholder={placeholder}
       maxLength={maxLength}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm sm:text-base border border-white/10 focus:border-purple-500/50 focus:outline-none"
+      disabled={disabled}
+      className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm sm:text-base border border-white/10 focus:border-purple-500/50 focus:outline-none disabled:opacity-50"
     />
   );
 }
@@ -631,10 +584,12 @@ function ChipGroup({
   values,
   selected,
   onToggle,
+  disabled,
 }: {
   values: readonly string[];
   selected: string[];
   onToggle: (value: string) => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="flex flex-wrap gap-2">
@@ -643,11 +598,12 @@ function ChipGroup({
           key={v}
           type="button"
           onClick={() => onToggle(v)}
-          className={`px-3 py-1 rounded-full text-xs sm:text-sm border transition ${
+          disabled={disabled}
+          className={`px-3 py-1 rounded-full text-xs sm:text-sm border transition active:scale-95 ${
             selected.includes(v)
               ? "bg-[#7C3AED] border-[#7C3AED] text-white"
               : "border-white/20 text-white/80 hover:border-white/40"
-          }`}
+          } disabled:opacity-50`}
         >
           {v}
         </button>

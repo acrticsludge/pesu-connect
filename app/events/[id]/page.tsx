@@ -1,14 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useParams, notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Club } from "@/lib/types/club";
-
-type EventResponse = {
-  event: any;
-};
+import { useEvent } from "@/lib/hooks/useEvents";
+import { useUser } from "@/lib/hooks/useUser";
+import { useEventPermissions } from "@/lib/hooks/useEventPermissions";
 
 const FALLBACK_BANNER = "/placeholder-banner.png";
 
@@ -22,105 +19,52 @@ const safeImageSrc = (url?: string) => {
   }
 };
 
+const formatDateTime = (d: string | Date) =>
+  new Date(d).toLocaleString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+const slugify = (text: string) => text.toLowerCase().replace(/\s+/g, "-");
+
 export default function EventPage() {
-  const { id } = useParams<{ id: string }>();
-  const [event, setEvent] = useState<any>(null);
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [canEdit, setCanEdit] = useState(false);
+  const params = useParams();
+  const id = params?.id as string;
 
-  const bannerSrc = safeImageSrc(event?.bannerUrl);
+  const { data: event, isLoading: eventLoading } = useEvent(id);
+  const { data: user } = useUser();
+  const { canEdit, isLoading: permissionsLoading } = useEventPermissions(
+    event,
+    user,
+  );
 
-  useEffect(() => {
-    fetch("/api/auth/me")
-      .then((r) => r.json())
-      .then((data) => {
-        setUser(data);
-      })
-      .catch(() => setUser(null));
-  }, []);
+  if (!id) {
+    return notFound();
+  }
 
-  useEffect(() => {
-    if (!id) return;
-
-    fetch(`/api/events/${id}`)
-      .then((res) => {
-        if (!res.ok) throw new Error();
-        return res.json();
-      })
-      .then((data: EventResponse) => setEvent(data.event))
-      .catch(() => setEvent(null))
-      .finally(() => setLoading(false));
-  }, [id]);
-
-  useEffect(() => {
-    if (!event || !user?.user) return;
-
-    const actualUser = user.user;
-
-    // Admin can always edit
-    if (actualUser.role === "admin") {
-      setCanEdit(true);
-      return;
-    }
-
-    // Check if user is level 1 in any involved club
-    const checkEditPermission = async () => {
-      for (const entry of event.involvedClubs) {
-        try {
-          const res = await fetch(`/api/clubs/${entry.club._id}`);
-          const club = await res.json();
-
-          if (!club) continue;
-
-          const maxLevel = Math.max(...club.ranks.map((r: any) => r.level));
-          const topRanks = club.ranks.filter((r: any) => r.level === maxLevel);
-
-          const isHead = topRanks.some((rank: any) =>
-            rank.users.some((u: any) => u.srn === actualUser.srn),
-          );
-
-          if (isHead) {
-            setCanEdit(true);
-            return;
-          }
-        } catch (error) {
-          console.error("Error checking club permissions:", error);
-        }
-      }
-    };
-
-    checkEditPermission();
-  }, [event, user]);
-
-  if (loading) {
+  if (eventLoading || permissionsLoading) {
     return (
-      <div className="text-center text-[#A3A3A3] py-20">Loading event...</div>
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+      </div>
     );
   }
 
   if (!event) return notFound();
 
+  const bannerSrc = safeImageSrc(event?.bannerUrl);
   const isPast = new Date(event.endDate).getTime() < Date.now();
   const regDeadline = event.registration?.deadline
     ? new Date(event.registration.deadline)
     : null;
   const isRegClosed = regDeadline ? regDeadline.getTime() < Date.now() : false;
 
-  const formatDateTime = (d: string | Date) =>
-    new Date(d).toLocaleString("en-IN", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
-
-  const slugify = (text: string) => text.toLowerCase().replace(/\s+/g, "-");
-
   return (
-    <div className="relative min-h-screen">
+    <div className="relative min-h-screen overflow-x-hidden">
       <div className="absolute inset-0 -z-10">
         <div className="absolute -top-32 left-1/2 -translate-x-1/2 h-105 w-105 rounded-full bg-purple-600/20 blur-[140px]" />
       </div>
@@ -128,7 +72,7 @@ export default function EventPage() {
       <div className="relative h-56 sm:h-72 md:h-80 w-full">
         <Image
           src={bannerSrc}
-          alt={event.name}
+          alt={`Banner for ${event.name}`}
           fill
           priority
           className="object-cover"
@@ -140,12 +84,14 @@ export default function EventPage() {
             <nav className="mb-4 text-sm text-[#A3A3A3]">
               <ol className="flex items-center gap-2">
                 <li>
-                  <Link href="/events" className="hover:text-white">
+                  <Link href="/events" className="hover:text-white transition">
                     Events
                   </Link>
                 </li>
                 <span>›</span>
-                <li className="text-white font-medium">{event.name}</li>
+                <li className="text-white font-medium truncate max-w-[200px] sm:max-w-md">
+                  {event.name}
+                </li>
               </ol>
             </nav>
 
@@ -176,33 +122,10 @@ export default function EventPage() {
               </div>
 
               {canEdit && (
-                <Link href={`/events/${event._id}/edit`}>
-                  <button
-                    className="
-                      relative px-6 py-2.5
-                      rounded-full font-bold text-sm sm:text-base
-                      text-white
-                      bg-linear-to-br from-[#7C3AED] via-[#9333EA] to-[#A855F7]
-                      shadow-[0_0_22px_rgba(168,85,247,0.8)]
-                      border border-purple-300/40
-                      transition-all duration-200
-                      hover:shadow-[0_0_36px_rgba(168,85,247,1)]
-                      hover:scale-[1.04]
-                      active:scale-[0.97]
-                      overflow-hidden
-                      cursor-pointer
-                      whitespace-nowrap
-                    "
-                  >
+                <Link href={`/events/${event._id}/edit`} className="shrink-0">
+                  <button className="relative px-6 py-2.5 rounded-full font-bold text-sm sm:text-base text-white bg-gradient-to-br from-[#7C3AED] via-[#9333EA] to-[#A855F7] shadow-[0_0_22px_rgba(168,85,247,0.8)] border border-purple-300/40 transition-all duration-200 hover:shadow-[0_0_36px_rgba(168,85,247,1)] hover:scale-[1.04] active:scale-[0.97] overflow-hidden cursor-pointer whitespace-nowrap">
                     <span className="relative z-10">Edit Event</span>
-                    <span
-                      className="
-                        absolute inset-0
-                        bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.25),transparent)]
-                        opacity-0 hover:opacity-100
-                        transition-opacity
-                      "
-                    />
+                    <span className="absolute inset-0 bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.25),transparent)] opacity-0 hover:opacity-100 transition-opacity" />
                   </button>
                 </Link>
               )}
@@ -228,45 +151,50 @@ export default function EventPage() {
               </section>
             )}
 
-            <section>
-              <h2 className="text-lg sm:text-xl font-bold text-white mb-4">
-                Involved Clubs & Domains
-              </h2>
+            {event.involvedClubs && event.involvedClubs.length > 0 && (
+              <section>
+                <h2 className="text-lg sm:text-xl font-bold text-white mb-4">
+                  Involved Clubs & Domains
+                </h2>
 
-              <div className="space-y-4">
-                {event.involvedClubs.map((entry: any) => {
-                  const club = entry.club;
+                <div className="space-y-4">
+                  {event.involvedClubs.map((entry: any, index: number) => {
+                    const club = entry.club;
+                    if (!club) return null;
 
-                  return (
-                    <div
-                      key={club._id}
-                      className="rounded-xl border border-white/10 bg-white/5 backdrop-blur p-4"
-                    >
-                      <h3 className="text-white font-semibold mb-1">
-                        <Link
-                          href={`/clubs/${club._id}`}
-                          className="hover:text-purple-400 hover:underline"
-                        >
-                          {club.name}
-                        </Link>
-                      </h3>
-
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {entry.domains.map((domain: string) => (
+                    return (
+                      <div
+                        key={club._id || index}
+                        className="rounded-xl border border-white/10 bg-white/5 backdrop-blur p-4"
+                      >
+                        <h3 className="text-white font-semibold mb-1">
                           <Link
-                            key={domain}
-                            href={`/clubs/${club._id}/${slugify(domain)}`}
-                            className="px-3 py-1 rounded-full text-xs bg-purple-500/15 border border-purple-500/30 text-purple-200 hover:bg-purple-500/25"
+                            href={`/clubs/${club._id}`}
+                            className="hover:text-purple-400 hover:underline transition"
                           >
-                            {domain}
+                            {club.name || "Unknown Club"}
                           </Link>
-                        ))}
+                        </h3>
+
+                        {entry.domains && entry.domains.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {entry.domains.map((domain: string) => (
+                              <Link
+                                key={domain}
+                                href={`/clubs/${club._id}/${slugify(domain)}`}
+                                className="px-3 py-1 rounded-full text-xs bg-purple-500/15 border border-purple-500/30 text-purple-200 hover:bg-purple-500/25 transition active:scale-95"
+                              >
+                                {domain}
+                              </Link>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
           </div>
 
           <div className="space-y-6">
@@ -276,27 +204,35 @@ export default function EventPage() {
               </h2>
 
               <div className="space-y-3 text-sm text-[#A3A3A3]">
-                <div>
-                  Date:{" "}
+                <div className="flex flex-col sm:flex-row sm:gap-1">
+                  <span className="text-white/60 sm:whitespace-nowrap">
+                    Date:
+                  </span>
                   <span className="text-white font-medium">
                     {formatDateTime(event.startDate)} –{" "}
                     {formatDateTime(event.endDate)}
                   </span>
                 </div>
 
-                <div>
-                  Venue:{" "}
+                <div className="flex flex-col sm:flex-row sm:gap-1">
+                  <span className="text-white/60 sm:whitespace-nowrap">
+                    Venue:
+                  </span>
                   <span className="text-white font-medium">{event.venue}</span>
                 </div>
 
-                <div>
-                  Campus:{" "}
+                <div className="flex flex-col sm:flex-row sm:gap-1">
+                  <span className="text-white/60 sm:whitespace-nowrap">
+                    Campus:
+                  </span>
                   <span className="text-white font-medium">{event.campus}</span>
                 </div>
 
                 {regDeadline && !isRegClosed && (
-                  <div>
-                    Last day to register:{" "}
+                  <div className="flex flex-col sm:flex-row sm:gap-1">
+                    <span className="text-white/60 sm:whitespace-nowrap">
+                      Last day to register:
+                    </span>
                     <span className="text-white font-medium">
                       {formatDateTime(regDeadline)}
                     </span>
@@ -329,7 +265,7 @@ export default function EventPage() {
                       "noopener,noreferrer",
                     )
                   }
-                  className="w-full px-5 py-3 rounded-full text-sm font-semibold bg-green-500 text-black hover:bg-green-400 transition"
+                  className="w-full px-5 py-3 rounded-full text-sm font-semibold bg-green-500 text-black hover:bg-green-400 transition active:scale-[0.98]"
                 >
                   Register Now
                 </button>

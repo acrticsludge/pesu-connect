@@ -1,0 +1,55 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
+
+interface CreateEventData {
+  name: string;
+  shortDescription: string;
+  fullDescription: string;
+  bannerUrl: string;
+  involvedClubs: { club: string; domains: string[] }[];
+  categories: string[];
+  tags: string[];
+  registration: {
+    isRegister: boolean;
+    deadline?: string;
+    link?: string;
+    methodText?: string;
+  };
+  startDate: string;
+  endDate: string;
+  venue: string;
+  campus: "RR" | "EC";
+  isPinned?: boolean;
+}
+
+export function useCreateEvent() {
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
+  return useMutation({
+    mutationFn: async (data: CreateEventData) => {
+      const res = await fetch("/api/events/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Failed to create event");
+      return result;
+    },
+    onMutate: () => {
+      toast.loading("Creating event...", { id: "create-event" });
+    },
+    onSuccess: (data) => {
+      toast.success("Event created successfully!", { id: "create-event" });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-events"] });
+      router.push(`/events/${data._id}`);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message, { id: "create-event" });
+    },
+  });
+}

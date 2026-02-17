@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { BaseEventData, EventCategory, EventTag } from "@/lib/types/event";
-
 import toast from "react-hot-toast";
-
 import dynamic from "next/dynamic";
 import "react-quill-new/dist/quill.snow.css";
+import { useUser } from "@/lib/hooks/useUser";
+import { useClubs } from "@/lib/hooks/useClubs";
+import { useEvent } from "@/lib/hooks/useEvents";
+import { useUpdateEvent } from "@/lib/hooks/useUpdateEvent";
+import { useState, useMemo } from "react";
+import { useDeleteEvent } from "@/lib/hooks/useDeleteEvent";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), {
   ssr: false,
@@ -38,78 +41,49 @@ export default function EditEventPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
 
-  const [user, setUser] = useState<any>(null);
-  const [event, setEvent] = useState<BaseEventData | null>(null);
-  const [clubs, setClubs] = useState<ClubData[]>([]);
-  const [clubsLoaded, setClubsLoaded] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { data: user } = useUser();
+  const { data: clubs = [], isLoading: clubsLoading } = useClubs();
+  const { data: event, isLoading: eventLoading } = useEvent(id);
+  const updateEvent = useUpdateEvent(id);
+  const deleteEvent = useDeleteEvent(id);
 
-  useEffect(() => {
-    fetch("/api/auth/me")
-      .then((r) => r.json())
-      .then((data) => {
-        setUser(data);
-        setIsAdmin(data?.user?.role === "admin");
-      })
-      .catch(() => setUser(null));
-  }, []);
+  const [localEvent, setLocalEvent] = useState<BaseEventData | null>(null);
 
-  useEffect(() => {
-    Promise.all([
-      fetch("/api/clubs").then((r) => r.json()),
-      id
-        ? fetch(`/api/events/${id}`).then((r) => r.json())
-        : Promise.resolve(null),
-    ])
-      .then(([clubsData, eventData]) => {
-        setClubs(clubsData || []);
-        setClubsLoaded(true);
+  useMemo(() => {
+    if (event) {
+      const normalizedInvolvedClubs = (event.involvedClubs || []).map(
+        (ic: any) => ({
+          club: typeof ic.club === "object" ? ic.club._id : ic.club,
+          domains: ic.domains || [],
+        }),
+      );
 
-        if (eventData?.event) {
-          const e = eventData.event;
-          const normalizedInvolvedClubs = (e.involvedClubs || []).map(
-            (ic: any) => ({
-              club: typeof ic.club === "object" ? ic.club._id : ic.club,
-              domains: ic.domains || [],
-            }),
-          );
-
-          setEvent({
-            ...e,
-            startDate: new Date(e.startDate),
-            endDate: new Date(e.endDate),
-            registration: e.registration || {
-              isRegister: false,
-              deadline: undefined,
-              link: "",
-              methodText: "",
-            },
-            involvedClubs: normalizedInvolvedClubs,
-          });
-        }
-        setLoading(false);
-      })
-      .catch(() => {
-        toast.error("Failed to load data");
-        setLoading(false);
+      setLocalEvent({
+        ...event,
+        startDate: new Date(event.startDate),
+        endDate: new Date(event.endDate),
+        registration: event.registration || {
+          isRegister: false,
+          deadline: undefined,
+          link: "",
+          methodText: "",
+        },
+        involvedClubs: normalizedInvolvedClubs,
       });
-  }, [id]);
+    }
+  }, [event]);
 
-  if (loading || !user || !clubsLoaded) {
-    return <div className="py-24 text-center text-white/60">Loading…</div>;
-  }
-
-  if (!event) {
+  if (eventLoading || clubsLoading || !localEvent) {
     return (
-      <div className="py-24 text-center text-red-400">Event not found</div>
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+      </div>
     );
   }
 
-  const canEdit = isAdmin;
+  const isAdmin = user?.role === "admin";
 
-  if (!canEdit) {
+  if (!isAdmin) {
     return (
       <div className="py-24 text-center text-red-400">
         You do not have permission to edit this event.
@@ -122,48 +96,48 @@ export default function EditEventPage() {
     field: "club" | "domains",
     value: any,
   ) => {
-    const updated = { ...event };
+    const updated = { ...localEvent };
     if (field === "club") {
       updated.involvedClubs[index].club = value;
       updated.involvedClubs[index].domains = [];
     } else {
       updated.involvedClubs[index].domains = value;
     }
-    setEvent(updated);
+    setLocalEvent(updated);
   };
 
   const addInvolvedClub = () => {
-    setEvent({
-      ...event,
-      involvedClubs: [...event.involvedClubs, { club: "", domains: [] }],
+    setLocalEvent({
+      ...localEvent,
+      involvedClubs: [...localEvent.involvedClubs, { club: "", domains: [] }],
     });
   };
 
   const removeInvolvedClub = (index: number) => {
-    setEvent({
-      ...event,
-      involvedClubs: event.involvedClubs.filter((_, i) => i !== index),
+    setLocalEvent({
+      ...localEvent,
+      involvedClubs: localEvent.involvedClubs.filter((_, i) => i !== index),
     });
   };
 
   const handleCategoryToggle = (category: EventCategory) => {
-    const current = event.categories || [];
+    const current = localEvent.categories || [];
     const updated = current.includes(category)
       ? current.filter((c) => c !== category)
       : [...current, category];
-    setEvent({ ...event, categories: updated });
+    setLocalEvent({ ...localEvent, categories: updated });
   };
 
   const handleTagToggle = (tag: EventTag) => {
-    const current = event.tags || [];
+    const current = localEvent.tags || [];
     const updated = current.includes(tag)
       ? current.filter((t) => t !== tag)
       : [...current, tag];
-    setEvent({ ...event, tags: updated });
+    setLocalEvent({ ...localEvent, tags: updated });
   };
 
   const validateInvolvedClubs = () => {
-    for (const [index, ic] of event.involvedClubs.entries()) {
+    for (const [index, ic] of localEvent.involvedClubs.entries()) {
       if (!ic.club) {
         toast.error(`Club ${index + 1}: Please select a club`);
         return false;
@@ -176,28 +150,31 @@ export default function EditEventPage() {
     return true;
   };
 
-  const save = async () => {
-    if (!event.name?.trim()) {
+  const handleSave = async () => {
+    if (!localEvent.name?.trim()) {
       toast.error("Event name is required");
       return;
     }
-    if (!event.venue?.trim()) {
+    if (!localEvent.venue?.trim()) {
       toast.error("Venue is required");
       return;
     }
-    if (!event.campus) {
+    if (!localEvent.campus) {
       toast.error("Campus is required");
       return;
     }
-    if (!event.startDate || !event.endDate) {
+    if (!localEvent.startDate || !localEvent.endDate) {
       toast.error("Start and end dates are required");
       return;
     }
-    if (new Date(event.startDate) >= new Date(event.endDate)) {
+    if (new Date(localEvent.startDate) >= new Date(localEvent.endDate)) {
       toast.error("End date must be after start date");
       return;
     }
-    if (event.registration?.isRegister && !event.registration.deadline) {
+    if (
+      localEvent.registration?.isRegister &&
+      !localEvent.registration.deadline
+    ) {
       toast.error("Registration deadline is required");
       return;
     }
@@ -205,31 +182,21 @@ export default function EditEventPage() {
       return;
     }
 
-    setSaving(true);
-    const toastId = toast.loading("Saving changes…");
+    updateEvent.mutate(localEvent, {
+      onSuccess: () => {
+        router.push(`/events/${id}`);
+        router.refresh();
+      },
+    });
+  };
 
-    try {
-      const res = await fetch(`/api/events/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(event),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        toast.error(data.error || "Failed to save", { id: toastId });
-        return;
-      }
-
-      toast.success("Event updated successfully", { id: toastId });
-      router.refresh();
-      router.push(`/events/${id}`);
-    } catch {
-      toast.error("Something went wrong", { id: toastId });
-    } finally {
-      setSaving(false);
-    }
+  const handleDelete = async () => {
+    if (!window.confirm("Delete this event permanently?")) return;
+    deleteEvent.mutate(undefined, {
+      onSuccess: () => {
+        router.push("/events");
+      },
+    });
   };
 
   const getClubDomains = (clubId: string) => {
@@ -247,20 +214,20 @@ export default function EditEventPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 sm:py-10 space-y-8 sm:space-y-12">
+    <div className="max-w-5xl mx-auto px-4 py-6 sm:py-10 space-y-8 sm:space-y-12 overflow-x-hidden">
       <nav className="text-sm text-white/50 flex flex-wrap items-center gap-1">
         <span
-          className="cursor-pointer hover:text-white"
+          className="cursor-pointer hover:text-white transition"
           onClick={() => router.push("/events")}
         >
           Events
         </span>
         <span>›</span>
         <span
-          className="cursor-pointer hover:text-white truncate max-w-37.5 sm:max-w-xs"
-          onClick={() => router.push(`/events/${event._id}`)}
+          className="cursor-pointer hover:text-white truncate max-w-37.5 sm:max-w-xs transition"
+          onClick={() => router.push(`/events/${localEvent._id}`)}
         >
-          {event.name}
+          {localEvent.name}
         </span>
         <span>›</span>
         <span className="text-white">Edit</span>
@@ -274,29 +241,36 @@ export default function EditEventPage() {
         </h2>
 
         <input
-          className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm sm:text-base"
-          value={event.name}
-          onChange={(e) => setEvent({ ...event, name: e.target.value })}
+          className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm sm:text-base border border-white/10 focus:border-purple-500/50 focus:outline-none"
+          value={localEvent.name}
+          onChange={(e) =>
+            setLocalEvent({ ...localEvent, name: e.target.value })
+          }
           placeholder="Event name"
+          disabled={updateEvent.isPending}
         />
 
         <textarea
           rows={2}
-          className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm sm:text-base"
-          value={event.shortDescription || ""}
+          className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm sm:text-base border border-white/10 focus:border-purple-500/50 focus:outline-none"
+          value={localEvent.shortDescription || ""}
           onChange={(e) =>
-            setEvent({ ...event, shortDescription: e.target.value })
+            setLocalEvent({ ...localEvent, shortDescription: e.target.value })
           }
           placeholder="Short description (max 160 characters)"
           maxLength={160}
+          disabled={updateEvent.isPending}
         />
 
         <div className="w-full rounded-xl bg-white/10 px-3 sm:px-4 py-3">
           <ReactQuill
-            value={event.fullDescription || ""}
-            onChange={(html) => setEvent({ ...event, fullDescription: html })}
+            value={localEvent.fullDescription || ""}
+            onChange={(html) =>
+              setLocalEvent({ ...localEvent, fullDescription: html })
+            }
             placeholder="Full event description"
             theme="snow"
+            readOnly={updateEvent.isPending}
             modules={{
               toolbar: [
                 ["bold", "italic", "underline"],
@@ -322,15 +296,19 @@ export default function EditEventPage() {
             </label>
             <input
               type="datetime-local"
-              className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm sm:text-base"
+              className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm sm:text-base border border-white/10 focus:border-purple-500/50 focus:outline-none"
               value={
-                event.startDate
-                  ? new Date(event.startDate).toISOString().slice(0, 16)
+                localEvent.startDate
+                  ? new Date(localEvent.startDate).toISOString().slice(0, 16)
                   : ""
               }
               onChange={(e) =>
-                setEvent({ ...event, startDate: new Date(e.target.value) })
+                setLocalEvent({
+                  ...localEvent,
+                  startDate: new Date(e.target.value),
+                })
               }
+              disabled={updateEvent.isPending}
             />
           </div>
           <div>
@@ -339,40 +317,52 @@ export default function EditEventPage() {
             </label>
             <input
               type="datetime-local"
-              className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm sm:text-base"
+              className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm sm:text-base border border-white/10 focus:border-purple-500/50 focus:outline-none"
               value={
-                event.endDate
-                  ? new Date(event.endDate).toISOString().slice(0, 16)
+                localEvent.endDate
+                  ? new Date(localEvent.endDate).toISOString().slice(0, 16)
                   : ""
               }
               onChange={(e) =>
-                setEvent({ ...event, endDate: new Date(e.target.value) })
+                setLocalEvent({
+                  ...localEvent,
+                  endDate: new Date(e.target.value),
+                })
               }
+              disabled={updateEvent.isPending}
             />
           </div>
         </div>
 
         <input
-          className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm sm:text-base"
-          value={event.venue || ""}
-          onChange={(e) => setEvent({ ...event, venue: e.target.value })}
+          className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm sm:text-base border border-white/10 focus:border-purple-500/50 focus:outline-none"
+          value={localEvent.venue || ""}
+          onChange={(e) =>
+            setLocalEvent({ ...localEvent, venue: e.target.value })
+          }
           placeholder="Venue"
+          disabled={updateEvent.isPending}
         />
 
         <div className="flex flex-wrap gap-4">
           {CAMPUSES.map((c) => (
             <label
               key={c}
-              className="flex items-center gap-2 text-white text-sm sm:text-base"
+              className="flex items-center gap-2 text-white text-sm sm:text-base cursor-pointer"
             >
               <input
                 type="radio"
                 name="campus"
                 value={c}
-                checked={event.campus === c}
+                checked={localEvent.campus === c}
                 onChange={(e) =>
-                  setEvent({ ...event, campus: e.target.value as "EC" | "RR" })
+                  setLocalEvent({
+                    ...localEvent,
+                    campus: e.target.value as "EC" | "RR",
+                  })
                 }
+                disabled={updateEvent.isPending}
+                className="cursor-pointer"
               />
               {c}
             </label>
@@ -391,12 +381,14 @@ export default function EditEventPage() {
             {CATEGORIES.map((cat) => (
               <label
                 key={cat}
-                className="flex items-center gap-2 text-white text-sm"
+                className="flex items-center gap-2 text-white text-sm cursor-pointer"
               >
                 <input
                   type="checkbox"
-                  checked={event.categories?.includes(cat)}
+                  checked={localEvent.categories?.includes(cat)}
                   onChange={() => handleCategoryToggle(cat)}
+                  disabled={updateEvent.isPending}
+                  className="cursor-pointer"
                 />
                 {cat}
               </label>
@@ -410,12 +402,14 @@ export default function EditEventPage() {
             {TAGS.map((tag) => (
               <label
                 key={tag}
-                className="flex items-center gap-2 text-white text-sm"
+                className="flex items-center gap-2 text-white text-sm cursor-pointer"
               >
                 <input
                   type="checkbox"
-                  checked={event.tags?.includes(tag)}
+                  checked={localEvent.tags?.includes(tag)}
                   onChange={() => handleTagToggle(tag)}
+                  disabled={updateEvent.isPending}
+                  className="cursor-pointer"
                 />
                 {tag}
               </label>
@@ -428,10 +422,13 @@ export default function EditEventPage() {
         <h2 className="text-xs sm:text-sm uppercase text-purple-300">Banner</h2>
 
         <input
-          className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm sm:text-base"
-          value={event.bannerUrl || ""}
-          onChange={(e) => setEvent({ ...event, bannerUrl: e.target.value })}
+          className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm sm:text-base border border-white/10 focus:border-purple-500/50 focus:outline-none"
+          value={localEvent.bannerUrl || ""}
+          onChange={(e) =>
+            setLocalEvent({ ...localEvent, bannerUrl: e.target.value })
+          }
           placeholder="Banner image URL"
+          disabled={updateEvent.isPending}
         />
       </section>
 
@@ -440,14 +437,14 @@ export default function EditEventPage() {
           <h2 className="text-xs sm:text-sm uppercase text-purple-300">
             Involved Clubs
           </h2>
-          {event.involvedClubs.length > 0 && (
+          {localEvent.involvedClubs.length > 0 && (
             <span className="text-xs text-red-400">
               * Domains are mandatory
             </span>
           )}
         </div>
 
-        {event.involvedClubs.map((ic, index) => {
+        {localEvent.involvedClubs.map((ic, index) => {
           const clubId = ic.club;
           const clubDomains = getClubDomains(clubId);
           const hasError = clubId && (!ic.domains || ic.domains.length === 0);
@@ -472,18 +469,20 @@ export default function EditEventPage() {
                 </div>
                 <button
                   onClick={() => removeInvolvedClub(index)}
-                  className="text-red-400 hover:text-red-300 text-sm"
+                  disabled={updateEvent.isPending}
+                  className="text-red-400 hover:text-red-300 transition text-sm disabled:opacity-50"
                 >
                   Remove
                 </button>
               </div>
 
               <select
-                className="w-full rounded-lg bg-[#1a1a2e] px-3 py-3 text-white border border-white/10 text-sm"
+                className="w-full rounded-lg bg-[#1a1a2e] px-3 py-3 text-white border border-white/10 text-sm focus:border-purple-500/50 focus:outline-none disabled:opacity-50"
                 value={clubId || ""}
                 onChange={(e) =>
                   handleInvolvedClubChange(index, "club", e.target.value)
                 }
+                disabled={updateEvent.isPending}
               >
                 <option
                   value=""
@@ -529,7 +528,7 @@ export default function EditEventPage() {
                     <>
                       <select
                         multiple
-                        className="w-full rounded-lg bg-[#1a1a2e] px-3 py-3 text-white border border-white/10 min-h-30 text-sm"
+                        className="w-full rounded-lg bg-[#1a1a2e] px-3 py-3 text-white border border-white/10 min-h-30 text-sm focus:border-purple-500/50 focus:outline-none disabled:opacity-50"
                         value={ic.domains || []}
                         onChange={(e) =>
                           handleInvolvedClubChange(
@@ -541,6 +540,7 @@ export default function EditEventPage() {
                             ),
                           )
                         }
+                        disabled={updateEvent.isPending}
                       >
                         {clubDomains.map((domain) => (
                           <option
@@ -575,12 +575,13 @@ export default function EditEventPage() {
 
         <button
           onClick={addInvolvedClub}
-          className="w-full sm:w-auto px-4 py-2 rounded-lg bg-purple-600/30 text-purple-300 hover:bg-purple-600/40 transition text-sm"
+          disabled={updateEvent.isPending}
+          className="w-full sm:w-auto px-4 py-2 rounded-lg bg-purple-600/30 text-purple-300 hover:bg-purple-600/40 transition text-sm active:scale-95 disabled:opacity-50"
         >
           + Add involved club
         </button>
 
-        {event.involvedClubs.length === 0 && (
+        {localEvent.involvedClubs.length === 0 && (
           <p className="text-sm text-yellow-400/70 bg-yellow-400/10 rounded-lg p-4">
             At least one involved club is required.
           </p>
@@ -592,15 +593,15 @@ export default function EditEventPage() {
           Registration
         </h2>
 
-        <label className="flex items-center gap-3 text-white text-sm">
+        <label className="flex items-center gap-3 text-white text-sm cursor-pointer">
           <input
             type="checkbox"
-            checked={event.registration?.isRegister}
+            checked={localEvent.registration?.isRegister}
             onChange={(e) =>
-              setEvent({
-                ...event,
+              setLocalEvent({
+                ...localEvent,
                 registration: {
-                  ...event.registration,
+                  ...localEvent.registration,
                   isRegister: e.target.checked,
                   ...(e.target.checked
                     ? {}
@@ -608,11 +609,13 @@ export default function EditEventPage() {
                 },
               })
             }
+            disabled={updateEvent.isPending}
+            className="cursor-pointer"
           />
           Enable Registration
         </label>
 
-        {event.registration?.isRegister && (
+        {localEvent.registration?.isRegister && (
           <div className="space-y-4 pl-4 sm:pl-6 border-l-2 border-purple-500/30">
             <div>
               <label className="text-xs sm:text-sm text-white/60 mb-1 block">
@@ -620,57 +623,60 @@ export default function EditEventPage() {
               </label>
               <input
                 type="datetime-local"
-                className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm"
+                className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm border border-white/10 focus:border-purple-500/50 focus:outline-none disabled:opacity-50"
                 value={
-                  event.registration.deadline
-                    ? new Date(event.registration.deadline)
+                  localEvent.registration.deadline
+                    ? new Date(localEvent.registration.deadline)
                         .toISOString()
                         .slice(0, 16)
                     : ""
                 }
                 onChange={(e) =>
-                  setEvent({
-                    ...event,
+                  setLocalEvent({
+                    ...localEvent,
                     registration: {
-                      ...event.registration,
+                      ...localEvent.registration,
                       deadline: e.target.value
                         ? new Date(e.target.value)
                         : undefined,
                     },
                   })
                 }
+                disabled={updateEvent.isPending}
               />
             </div>
 
             <input
-              className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm"
-              value={event.registration.link || ""}
+              className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm border border-white/10 focus:border-purple-500/50 focus:outline-none disabled:opacity-50"
+              value={localEvent.registration.link || ""}
               onChange={(e) =>
-                setEvent({
-                  ...event,
+                setLocalEvent({
+                  ...localEvent,
                   registration: {
-                    ...event.registration,
+                    ...localEvent.registration,
                     link: e.target.value,
                   },
                 })
               }
               placeholder="Registration link"
+              disabled={updateEvent.isPending}
             />
 
             <textarea
               rows={2}
-              className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm"
-              value={event.registration.methodText || ""}
+              className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm border border-white/10 focus:border-purple-500/50 focus:outline-none disabled:opacity-50"
+              value={localEvent.registration.methodText || ""}
               onChange={(e) =>
-                setEvent({
-                  ...event,
+                setLocalEvent({
+                  ...localEvent,
                   registration: {
-                    ...event.registration,
+                    ...localEvent.registration,
                     methodText: e.target.value,
                   },
                 })
               }
               placeholder="Registration instructions"
+              disabled={updateEvent.isPending}
             />
           </div>
         )}
@@ -682,52 +688,40 @@ export default function EditEventPage() {
             Admin Controls
           </h2>
 
-          <label className="flex items-center gap-3 text-white text-sm">
+          <label className="flex items-center gap-3 text-white text-sm cursor-pointer">
             <input
               type="checkbox"
-              checked={event.isPinned || false}
+              checked={localEvent.isPinned || false}
               onChange={(e) =>
-                setEvent({ ...event, isPinned: e.target.checked })
+                setLocalEvent({ ...localEvent, isPinned: e.target.checked })
               }
+              disabled={updateEvent.isPending}
+              className="cursor-pointer"
             />
             Pin this event
           </label>
         </section>
       )}
 
-      <button
-        onClick={save}
-        disabled={saving}
-        className="w-full py-3 rounded-xl bg-[#7C3AED] text-white font-semibold hover:bg-[#6D28D9] transition disabled:opacity-50 text-sm sm:text-base"
-      >
-        {saving ? "Saving…" : "Save Changes"}
-      </button>
-
-      {isAdmin && (
+      <div className="flex flex-col sm:flex-row gap-3">
         <button
-          onClick={async () => {
-            if (!window.confirm("Delete this event permanently?")) return;
-            const toastId = toast.loading("Deleting event…");
-            try {
-              const res = await fetch(`/api/events/${id}`, {
-                method: "DELETE",
-              });
-              if (!res.ok) {
-                const data = await res.json();
-                toast.error(data.error || "Failed to delete", { id: toastId });
-                return;
-              }
-              toast.success("Event deleted", { id: toastId });
-              router.push("/events");
-            } catch {
-              toast.error("Something went wrong", { id: toastId });
-            }
-          }}
-          className="w-full py-3 rounded-xl bg-red-700 text-white font-semibold hover:bg-red-600 transition text-sm sm:text-base"
+          onClick={handleSave}
+          disabled={updateEvent.isPending}
+          className="flex-1 py-3 rounded-xl bg-[#7C3AED] text-white font-semibold hover:bg-[#6D28D9] transition disabled:opacity-50 active:scale-[0.98] text-sm sm:text-base"
         >
-          Delete Event
+          {updateEvent.isPending ? "Saving…" : "Save Changes"}
         </button>
-      )}
+
+        {isAdmin && (
+          <button
+            onClick={handleDelete}
+            disabled={deleteEvent.isPending}
+            className="flex-1 py-3 rounded-xl bg-red-700 text-white font-semibold hover:bg-red-600 transition disabled:opacity-50 active:scale-[0.98] text-sm sm:text-base"
+          >
+            {deleteEvent.isPending ? "Deleting…" : "Delete Event"}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,8 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 
-type User = {
+export type User = {
   name: string;
   srn: string;
+  email: string;
+  role: string;
+  profilePic: string | null;
 } | null;
 
 async function fetchUser(): Promise<User> {

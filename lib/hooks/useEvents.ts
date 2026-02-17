@@ -13,31 +13,35 @@ async function fetchEvents(): Promise<BaseEventData[]> {
 }
 
 export function useEvents() {
-  return useQuery({
+  return useQuery<BaseEventData[]>({
     queryKey: [EVENTS_KEY],
     queryFn: fetchEvents,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
     retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 }
 
-export function useEvent(id: string) {
+export function useEvent(id: string | undefined) {
   return useQuery({
     queryKey: [EVENTS_KEY, id],
     queryFn: async () => {
+      if (!id || id === "undefined") {
+        throw new Error("Invalid event ID");
+      }
       const res = await fetch(`/api/events/${id}`);
       if (!res.ok) {
         throw new Error("Failed to fetch event");
       }
-      return res.json();
+      const data = await res.json();
+      return data.event || data;
     },
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
-    enabled: !!id,
+    enabled: !!id && id !== "undefined",
+    retry: 1,
   });
 }
 
