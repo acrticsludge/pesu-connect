@@ -1,6 +1,6 @@
 interface RateLimiterOptions {
   windowMs: number;
-  maxRequests: number;
+  maxRequests: number | Record<string, number>;
 }
 
 interface RateLimitRecord {
@@ -10,13 +10,22 @@ interface RateLimitRecord {
 
 export class RateLimiter {
   private windowMs: number;
-  private maxRequests: number;
+  private maxRequests: number | Record<string, number>;
   private cache: Map<string, RateLimitRecord>;
 
   constructor(options: RateLimiterOptions) {
     this.windowMs = options.windowMs;
     this.maxRequests = options.maxRequests;
     this.cache = new Map();
+  }
+
+  private getMaxRequests(key: string): number {
+    if (typeof this.maxRequests === "number") {
+      return this.maxRequests;
+    }
+
+    const method = key.split("-")[0];
+    return this.maxRequests[method] || this.maxRequests["GET"] || 50;
   }
 
   async check(key: string): Promise<{
@@ -27,6 +36,7 @@ export class RateLimiter {
   }> {
     const now = Date.now();
     const record = this.cache.get(key);
+    const maxRequests = this.getMaxRequests(key);
 
     if (!record || now >= record.resetTime) {
       this.cache.set(key, {
@@ -36,16 +46,16 @@ export class RateLimiter {
 
       return {
         allowed: true,
-        limit: this.maxRequests,
-        remaining: this.maxRequests - 1,
+        limit: maxRequests,
+        remaining: maxRequests - 1,
         reset: now + this.windowMs,
       };
     }
 
-    if (record.count >= this.maxRequests) {
+    if (record.count >= maxRequests) {
       return {
         allowed: false,
-        limit: this.maxRequests,
+        limit: maxRequests,
         remaining: 0,
         reset: record.resetTime,
       };
@@ -56,8 +66,8 @@ export class RateLimiter {
 
     return {
       allowed: true,
-      limit: this.maxRequests,
-      remaining: this.maxRequests - record.count,
+      limit: maxRequests,
+      remaining: maxRequests - record.count,
       reset: record.resetTime,
     };
   }
