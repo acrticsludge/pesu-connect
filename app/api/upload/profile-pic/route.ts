@@ -4,7 +4,19 @@ import { verifyToken } from "@/lib/auth";
 import { connectDB } from "@/lib/db";
 import User from "@/lib/models/User";
 import cloudinary from "@/lib/cloudinary";
-import mongoose from "mongoose";
+import { RateLimiter } from "@/lib/rateLimiter";
+const rateLimiter = new RateLimiter({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 5,
+});
+
+const ALLOWED_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+]);
 
 export async function POST(req: Request) {
   try {
@@ -14,27 +26,42 @@ export async function POST(req: Request) {
     }
 
     const payload = verifyToken(token);
-    if (!payload) {
+    if (!payload?.sub) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rateLimitResult = await rateLimiter.check(payload.sub);
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: "Too many uploads. Please try again later." },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Limit": rateLimitResult.limit.toString(),
+            "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
+            "X-RateLimit-Reset": rateLimitResult.reset.toString(),
+          },
+        },
+      );
     }
 
     await connectDB();
 
-    const user = await User.findById(payload.sub);
+    const user = await User.findById(payload.sub).lean();
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     const formData = await req.formData();
-    const file = formData.get("file") as File;
+    const file = formData.get("file") as File | null;
 
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
-    if (!file.type.startsWith("image/")) {
+    if (!ALLOWED_MIME_TYPES.has(file.type)) {
       return NextResponse.json(
-        { error: "File must be an image" },
+        { error: "File must be an image (JPEG, PNG, WEBP, or GIF)" },
         { status: 400 },
       );
     }
@@ -53,10 +80,10 @@ export async function POST(req: Request) {
 
     if (user.profilePic) {
       try {
-        const urlParts = user.profilePic.split("/");
-        const filename = urlParts[urlParts.length - 1];
-        const publicId = `profile-pics/${filename.split(".")[0]}`;
-        await cloudinary.uploader.destroy(publicId);
+        const publicIdMatch = user.profilePic.match(/profile-pics\/([^/.]+)/);
+        if (publicIdMatch) {
+          await cloudinary.uploader.destroy(publicIdMatch[0]);
+        }
       } catch (error) {
         console.error("Error deleting old image:", error);
       }
@@ -65,19 +92,15 @@ export async function POST(req: Request) {
     const result = await cloudinary.uploader.upload(dataURI, {
       folder: "profile-pics",
       public_id: `${user.srn}-${Date.now()}`,
-      overwrite: true,
       transformation: [
         { width: 400, height: 400, crop: "fill", gravity: "face" },
-        { quality: "auto" },
+        { quality: "auto:good" },
         { fetch_format: "auto" },
       ],
     });
 
-    const db = mongoose.connection.db;
-    const collection = (db as any).collection("users");
-
-    await collection.updateOne(
-      { _id: new mongoose.Types.ObjectId(user._id) },
+    await User.updateOne(
+      { _id: user._id },
       { $set: { profilePic: result.secure_url } },
     );
 
@@ -93,3 +116,9 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
