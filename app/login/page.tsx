@@ -1,14 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import { useQueryClient } from "@tanstack/react-query";
+import { useUser } from "@/lib/hooks/useUser";
 
 export default function LoginPage() {
   const [srn, setSrn] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { data: user, isLoading: userLoading } = useUser();
+
+  useEffect(() => {
+    if (!userLoading && user) {
+      router.push("/");
+    }
+  }, [user, userLoading, router]);
+
+  if (userLoading) {
+    return (
+      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (user) {
+    return null;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,6 +49,8 @@ export default function LoginPage() {
       if (!res.ok) {
         throw new Error(data.error || "Login failed");
       }
+
+      await queryClient.invalidateQueries({ queryKey: ["user"] });
 
       toast.success("Logged in successfully!", { id: toastId });
       router.push("/");
