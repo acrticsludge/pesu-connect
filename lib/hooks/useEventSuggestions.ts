@@ -17,7 +17,7 @@ function fuzzyMatch(query: string, text: string) {
   return qWords.every((qw) => tWords.some((tw) => tw.includes(qw)));
 }
 
-export function useSearchSuggestions(events: BaseEventData[], query: string) {
+export function useEventSuggestions(events: BaseEventData[], query: string) {
   return useMemo(() => {
     if (!query.trim()) return [];
     const set = new Set<string>();

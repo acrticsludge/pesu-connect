@@ -6,7 +6,7 @@ import { BaseEventData } from "@/lib/types/event";
 import Link from "next/link";
 import { useEvents } from "@/lib/hooks/useEvents";
 import { useDebounce } from "@/lib/hooks/useDebounce";
-import { useSearchSuggestions } from "@/lib/hooks/useSearchSuggestions";
+import { useEventSuggestions } from "@/lib/hooks/useEventSuggestions";
 
 const isPastEvent = (event: BaseEventData) =>
   new Date(event.endDate).getTime() < Date.now();
@@ -58,7 +58,7 @@ export default function EventsPage() {
 
   const debouncedQuery = useDebounce(query, 250);
   const { data: events = [], isLoading } = useEvents();
-  const suggestions = useSearchSuggestions(events, debouncedQuery);
+  const suggestions = useEventSuggestions(events, debouncedQuery);
 
   const filteredEvents = useMemo(() => {
     const ranked = events

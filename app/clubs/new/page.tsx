@@ -1,16 +1,16 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import { useUser } from "@/lib/hooks/useUser";
+import { useCreateClub } from "@/lib/hooks/useCreateClub";
 
 export default function AddClubPage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const { data: user, isLoading: userLoading } = useUser();
+  const createClub = useCreateClub();
 
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     name: "",
     shortDescription: "",
@@ -21,150 +21,126 @@ export default function AddClubPage() {
     staffDepartment: "",
   });
 
-  useEffect(() => {
-    fetch("/api/auth/me")
-      .then((res) => res.json())
-      .then((data) => {
-        if (!data.user) {
-          router.replace("/");
-        } else {
-          setUser(data.user);
-          setLoading(false);
-        }
-      });
-  }, [router]);
-
-  const submit = async () => {
-    if (submitting || !user) return;
-
-    if (!form.name.trim()) {
-      toast.error("Club name is required");
-      return;
-    }
-
-    if (!form.foundedOn) {
-      toast.error("Founded date is required");
-      return;
-    }
-
-    setSubmitting(true);
-
-    const endpoint =
-      user.role === "admin" ? "/api/clubs/create" : "/api/club-requests";
-
-    const toastId = toast.loading(
-      user.role === "admin" ? "Creating club…" : "Sending club request…",
-    );
-
-    try {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        toast.error(data.message || "Something went wrong", { id: toastId });
-        setSubmitting(false);
-        return;
-      }
-
-      toast.success(
-        user.role === "admin"
-          ? "Club created successfully 🎉"
-          : "Club request sent for approval ✅",
-        { id: toastId },
-      );
-
-      if (user.role === "admin") {
-        router.push(`/clubs/${data._id}`);
-      } else {
-        router.push("/dashboard");
-      }
-    } catch {
-      toast.error("Network error. Please try again.", { id: toastId });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  if (loading) {
+  if (userLoading) {
     return (
-      <div className="text-center py-20 text-[#A3A3A3]">
-        Checking permissions...
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
+  if (!user) {
+    router.replace("/");
+    return null;
+  }
+
+  const validate = () => {
+    if (!form.name.trim()) return "Club name is required";
+    if (!form.foundedOn) return "Founded date is required";
+    return null;
+  };
+
+  const handleSubmit = async () => {
+    const error = validate();
+    if (error) {
+      toast.error(error);
+      return;
+    }
+
+    createClub.mutate(form, {
+      onSuccess: (data) => {
+        if (user.role === "admin") {
+          router.push(`/clubs/${data._id}`);
+        } else {
+          router.push("/dashboard");
+        }
+      },
+    });
+  };
+
   return (
-    <div className="max-w-2xl mx-auto px-4 py-12">
-      <h1 className="text-2xl sm:text-3xl font-bold text-white mb-6">
+    <div className="max-w-2xl mx-auto px-4 py-8 sm:py-12 overflow-x-hidden">
+      <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-4 sm:mb-6">
         Create New Club
       </h1>
 
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         <input
-          className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white outline-none"
-          placeholder="Club name"
+          className="w-full rounded-xl bg-white/10 border border-white/10 px-3 sm:px-4 py-2.5 sm:py-3 text-white text-sm sm:text-base outline-none focus:border-purple-500/50 transition disabled:opacity-50"
+          placeholder="Club name *"
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
+          disabled={createClub.isPending}
         />
 
         <textarea
-          className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white outline-none"
+          className="w-full rounded-xl bg-white/10 border border-white/10 px-3 sm:px-4 py-2.5 sm:py-3 text-white text-sm sm:text-base outline-none focus:border-purple-500/50 transition disabled:opacity-50"
           placeholder="Short description"
           rows={3}
           value={form.shortDescription}
           onChange={(e) =>
             setForm({ ...form, shortDescription: e.target.value })
           }
+          disabled={createClub.isPending}
         />
 
-        <input
-          type="date"
-          className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white outline-none"
-          value={form.foundedOn}
-          onChange={(e) => setForm({ ...form, foundedOn: e.target.value })}
-        />
+        <div>
+          <label className="block text-xs sm:text-sm text-white/60 mb-1">
+            Founded Date *
+          </label>
+          <input
+            type="date"
+            className="w-full rounded-xl bg-white/10 border border-white/10 px-3 sm:px-4 py-2.5 sm:py-3 text-white text-sm sm:text-base outline-none focus:border-purple-500/50 transition disabled:opacity-50"
+            value={form.foundedOn}
+            onChange={(e) => setForm({ ...form, foundedOn: e.target.value })}
+            disabled={createClub.isPending}
+          />
+        </div>
 
         <input
-          className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white outline-none"
+          className="w-full rounded-xl bg-white/10 border border-white/10 px-3 sm:px-4 py-2.5 sm:py-3 text-white text-sm sm:text-base outline-none focus:border-purple-500/50 transition disabled:opacity-50"
           placeholder="Banner image URL (optional)"
           value={form.bannerUrl}
           onChange={(e) => setForm({ ...form, bannerUrl: e.target.value })}
+          disabled={createClub.isPending}
         />
 
         <input
-          className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white outline-none"
+          className="w-full rounded-xl bg-white/10 border border-white/10 px-3 sm:px-4 py-2.5 sm:py-3 text-white text-sm sm:text-base outline-none focus:border-purple-500/50 transition disabled:opacity-50"
           placeholder="Instagram URL (optional)"
           value={form.instagram}
           onChange={(e) => setForm({ ...form, instagram: e.target.value })}
+          disabled={createClub.isPending}
         />
 
         <input
-          className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white outline-none"
+          className="w-full rounded-xl bg-white/10 border border-white/10 px-3 sm:px-4 py-2.5 sm:py-3 text-white text-sm sm:text-base outline-none focus:border-purple-500/50 transition disabled:opacity-50"
           placeholder="Staff coordinator name"
           value={form.staffName}
           onChange={(e) => setForm({ ...form, staffName: e.target.value })}
+          disabled={createClub.isPending}
         />
 
         <input
-          className="w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-white outline-none"
+          className="w-full rounded-xl bg-white/10 border border-white/10 px-3 sm:px-4 py-2.5 sm:py-3 text-white text-sm sm:text-base outline-none focus:border-purple-500/50 transition disabled:opacity-50"
           placeholder="Staff coordinator department"
           value={form.staffDepartment}
           onChange={(e) =>
             setForm({ ...form, staffDepartment: e.target.value })
           }
+          disabled={createClub.isPending}
         />
 
         <button
-          onClick={submit}
-          disabled={submitting}
-          className="w-full mt-4 px-6 py-3 rounded-xl bg-[#7C3AED] text-white font-semibold hover:bg-[#6D28D9] transition"
+          onClick={handleSubmit}
+          disabled={createClub.isPending}
+          className="w-full mt-4 sm:mt-6 px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-[#7C3AED] text-white font-semibold hover:bg-[#6D28D9] transition disabled:opacity-50 active:scale-[0.98] text-sm sm:text-base"
         >
-          {user?.role === "admin" ? "Create Club" : "Send Request"}
+          {createClub.isPending
+            ? "Submitting..."
+            : user?.role === "admin"
+              ? "Create Club"
+              : "Send Request"}
         </button>
       </div>
     </div>
