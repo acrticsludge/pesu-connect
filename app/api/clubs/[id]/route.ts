@@ -6,19 +6,31 @@ export async function GET(
   _req: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await context.params;
+  try {
+    const { id } = await context.params;
 
-  console.log("API HIT with id:", id);
+    if (!id) {
+      return NextResponse.json({ error: "Invalid club ID" }, { status: 400 });
+    }
 
-  await connectDB();
+    await connectDB();
 
-  const club = await Club.findById(id).lean();
+    const club = await Club.findById(id).lean();
 
-  console.log("Club found?", !!club);
+    if (!club) {
+      return NextResponse.json({ error: "Club not found" }, { status: 404 });
+    }
 
-  if (!club) {
-    return NextResponse.json({ error: "Club not found" }, { status: 404 });
+    return NextResponse.json(club, {
+      headers: {
+        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching club:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch club" },
+      { status: 500 },
+    );
   }
-
-  return NextResponse.json(club);
 }
