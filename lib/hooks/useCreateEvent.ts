@@ -23,11 +23,14 @@ interface CreateEventData {
   isPinned?: boolean;
 }
 
+const EVENTS_KEY = "events";
+
 export function useCreateEvent() {
   const queryClient = useQueryClient();
   const router = useRouter();
 
   return useMutation({
+    mutationKey: ["create-event"],
     mutationFn: async (data: CreateEventData) => {
       const res = await fetch("/api/events/create", {
         method: "POST",
@@ -44,8 +47,8 @@ export function useCreateEvent() {
     },
     onSuccess: (data) => {
       toast.success("Event created successfully!", { id: "create-event" });
-      queryClient.invalidateQueries({ queryKey: ["events"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-events"] });
+      queryClient.setQueryData([EVENTS_KEY, data._id], data);
+      queryClient.invalidateQueries({ queryKey: [EVENTS_KEY] });
       router.push(`/events/${data._id}`);
     },
     onError: (error: Error) => {

@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 export function useUserClubs(user: any, clubs: any[]) {
@@ -46,6 +45,9 @@ export function useUserClubs(user: any, clubs: any[]) {
       return userClubRoles;
     },
     enabled: !!user && clubs.length > 0,
-    staleTime: 5 * 60 * 1000,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+    gcTime: 0,
   });
 }

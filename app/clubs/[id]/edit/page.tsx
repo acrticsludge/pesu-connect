@@ -15,6 +15,7 @@ import { useClub } from "@/lib/hooks/useClubs";
 import { useAllSrns } from "@/lib/hooks/useAllSrns";
 import { useUpdateClub } from "@/lib/hooks/useUpdateClub";
 import { useDeleteClub } from "@/lib/hooks/useDeleteClub";
+import { useQueryClient } from "@tanstack/react-query";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), {
   ssr: false,
@@ -32,6 +33,7 @@ export default function EditClubPage() {
 
   const [localClub, setLocalClub] = useState<Club | null>(null);
   const [saving, setSaving] = useState(false);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (club) {
@@ -134,11 +136,11 @@ export default function EditClubPage() {
     updateClub.mutate(localClub, {
       onSettled: () => setSaving(false),
       onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["clubs"] });
         router.refresh();
       },
     });
   };
-
   const saveWith = async (data: Club) => {
     setSaving(true);
     updateClub.mutate(data, {

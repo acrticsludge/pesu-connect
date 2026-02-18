@@ -21,8 +21,8 @@ export function useUser() {
   return useQuery({
     queryKey: ["user"],
     queryFn: fetchUser,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 0,
+    gcTime: 0,
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
     retry: 1,

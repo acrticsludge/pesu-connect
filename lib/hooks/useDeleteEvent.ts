@@ -2,11 +2,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
+const EVENTS_KEY = "events";
+
 export function useDeleteEvent(id: string) {
   const queryClient = useQueryClient();
   const router = useRouter();
 
   return useMutation({
+    mutationKey: ["delete-event", id],
     mutationFn: async () => {
       const res = await fetch(`/api/events/${id}`, {
         method: "DELETE",
@@ -21,7 +24,8 @@ export function useDeleteEvent(id: string) {
     },
     onSuccess: () => {
       toast.success("Event deleted", { id: "delete-event" });
-      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.removeQueries({ queryKey: [EVENTS_KEY, id] });
+      queryClient.invalidateQueries({ queryKey: [EVENTS_KEY] });
       router.refresh();
     },
     onError: (error: Error) => {

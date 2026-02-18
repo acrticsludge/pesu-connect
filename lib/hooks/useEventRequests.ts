@@ -16,7 +16,9 @@ export function useEventRequests(role: string) {
   return useQuery({
     queryKey: ["event-requests", role],
     queryFn: () => fetchEventRequests(role),
-    staleTime: 2 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 }

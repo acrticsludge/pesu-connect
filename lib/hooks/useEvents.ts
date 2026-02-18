@@ -16,8 +16,8 @@ export function useEvents() {
   return useQuery<BaseEventData[]>({
     queryKey: [EVENTS_KEY],
     queryFn: fetchEvents,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 0,
+    gcTime: 0,
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
     retry: 3,
@@ -42,12 +42,13 @@ export function useEvent(id: string | undefined) {
     gcTime: 10 * 60 * 1000,
     enabled: !!id && id !== "undefined",
     retry: 1,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 }
 
 export function usePrefetchEvents() {
   const queryClient = useQueryClient();
-
   return () => {
     queryClient.prefetchQuery({
       queryKey: [EVENTS_KEY],

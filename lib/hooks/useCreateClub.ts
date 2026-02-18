@@ -12,11 +12,14 @@ interface ClubFormData {
   staffDepartment: string;
 }
 
+const CLUBS_KEY = "clubs";
+
 export function useCreateClub() {
   const queryClient = useQueryClient();
   const router = useRouter();
 
   return useMutation({
+    mutationKey: ["create-club"],
     mutationFn: async (formData: ClubFormData) => {
       const res = await fetch("/api/clubs/create", {
         method: "POST",
@@ -33,7 +36,8 @@ export function useCreateClub() {
     },
     onSuccess: (data) => {
       toast.success("Club created successfully!", { id: "create-club" });
-      queryClient.invalidateQueries({ queryKey: ["clubs"] });
+      queryClient.setQueryData([CLUBS_KEY, data._id], data);
+      queryClient.invalidateQueries({ queryKey: [CLUBS_KEY] });
       router.push(`/clubs/${data._id}`);
     },
     onError: (error: Error) => {

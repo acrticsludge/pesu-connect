@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Club } from "@/lib/types/club";
 
 const CLUBS_KEY = "clubs";
@@ -15,12 +15,11 @@ export function useClubs() {
   return useQuery({
     queryKey: [CLUBS_KEY],
     queryFn: fetchClubs,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-    refetchOnWindowFocus: false,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
     refetchOnReconnect: true,
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 }
 
@@ -34,20 +33,10 @@ export function useClub(id: string) {
       }
       return res.json();
     },
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 0,
+    gcTime: 0,
     enabled: !!id,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
-}
-
-export function usePrefetchClubs() {
-  const queryClient = useQueryClient();
-
-  return () => {
-    queryClient.prefetchQuery({
-      queryKey: [CLUBS_KEY],
-      queryFn: fetchClubs,
-      staleTime: 5 * 60 * 1000,
-    });
-  };
 }

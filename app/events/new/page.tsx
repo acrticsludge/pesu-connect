@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import dynamic from "next/dynamic";
@@ -8,6 +8,7 @@ import "react-quill-new/dist/quill.snow.css";
 import { useUser } from "@/lib/hooks/useUser";
 import { useClubs } from "@/lib/hooks/useClubs";
 import { useCreateEvent } from "@/lib/hooks/useCreateEvent";
+import { useQueryClient } from "@tanstack/react-query";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
 
@@ -24,6 +25,7 @@ const CAMPUS = ["RR", "EC"] as const;
 
 export default function NewEventPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { data: user, isLoading: userLoading } = useUser();
   const { data: clubs = [], isLoading: clubsLoading } = useClubs();
   const createEvent = useCreateEvent();
@@ -48,7 +50,9 @@ export default function NewEventPage() {
     campus: "RR" as "RR" | "EC",
     isPinned: false,
   });
-
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ["clubs"] });
+  }, []);
   if (userLoading || clubsLoading) {
     return <div className="text-center py-20 text-[#A3A3A3]">Loading...</div>;
   }

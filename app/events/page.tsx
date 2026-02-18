@@ -7,6 +7,8 @@ import Link from "next/link";
 import { useEvents } from "@/lib/hooks/useEvents";
 import { useDebounce } from "@/lib/hooks/useDebounce";
 import { useEventSuggestions } from "@/lib/hooks/useEventSuggestions";
+import { useUser } from "@/lib/hooks/useUser";
+import { useClubs } from "@/lib/hooks/useClubs";
 
 const isPastEvent = (event: BaseEventData) =>
   new Date(event.endDate).getTime() < Date.now();
@@ -59,6 +61,17 @@ export default function EventsPage() {
   const debouncedQuery = useDebounce(query, 250);
   const { data: events = [], isLoading } = useEvents();
   const suggestions = useEventSuggestions(events, debouncedQuery);
+  const { data: user } = useUser();
+  const { data: clubs = [] } = useClubs();
+
+  const isClubLead = clubs?.some((club) =>
+    club.ranks?.some(
+      (rank) =>
+        rank.level === 1 && rank.users?.some((u) => u.srn === user?.srn),
+    ),
+  );
+
+  const canCreate = user?.role === "admin" || isClubLead;
 
   const filteredEvents = useMemo(() => {
     const ranked = events
@@ -111,6 +124,13 @@ export default function EventsPage() {
         <p className="mt-3 text-sm sm:text-base text-[#A3A3A3] max-w-xl mx-auto px-4">
           Discover workshops, hackathons, competitions and more
         </p>
+        {canCreate && (
+          <Link href="/events/new">
+            <button className="px-6 sm:px-7 py-2.5 sm:py-3 mt-5 bg-[#7C3AED] text-white rounded-full font-bold text-sm sm:text-lg active:scale-[0.97] transition hover:bg-[#6D28D9]">
+              Create Event
+            </button>
+          </Link>
+        )}
         <div className="mt-6 h-px w-24 mx-auto bg-linear-to-r from-transparent via-purple-500/60 to-transparent" />
       </div>
 

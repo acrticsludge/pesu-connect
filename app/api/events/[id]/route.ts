@@ -22,25 +22,23 @@ const rateLimiter = new RateLimiter({
   },
 });
 
-function isUserClubHead(userSrn: string, club: any) {
-  if (!club?.ranks?.length) return false;
-  const maxLevel = Math.max(...club.ranks.map((r: any) => r.level));
-  const topRanks = club.ranks.filter((r: any) => r.level === maxLevel);
-  return topRanks.some((rank: any) =>
-    rank.users?.some((u: any) => u.srn === userSrn),
-  );
-}
-
 async function canUserEditEvent(user: any, event: any) {
   if (user.role === "admin") return true;
   if (!event?.involvedClubs?.length) return false;
 
-  for (const entry of event.involvedClubs) {
-    if (!entry.club) continue;
-    const club = await Club.findById(entry.club).lean();
-    if (club && isUserClubHead(user.srn, club)) return true;
-  }
-  return false;
+  const clubIds = event.involvedClubs.map((entry: any) => entry.club);
+
+  const clubs = await Club.find({
+    _id: { $in: clubIds },
+    ranks: {
+      $elemMatch: {
+        level: 1,
+        "users.srn": user.srn,
+      },
+    },
+  }).lean();
+
+  return clubs.length > 0;
 }
 
 export async function GET(

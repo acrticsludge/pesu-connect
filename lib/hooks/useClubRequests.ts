@@ -16,7 +16,9 @@ export function useClubRequests(role: string) {
   return useQuery({
     queryKey: ["club-requests", role],
     queryFn: () => fetchClubRequests(role),
-    staleTime: 2 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 }

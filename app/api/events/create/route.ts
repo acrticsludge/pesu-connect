@@ -4,6 +4,7 @@ import { verifyToken } from "@/lib/auth";
 import { connectDB } from "@/lib/db";
 import User from "@/lib/models/User";
 import Event from "@/lib/models/Event";
+import Club from "@/lib/models/Club";
 import {
   validateRegistration,
   validateEventDates,
@@ -14,6 +15,21 @@ const rateLimiter = new RateLimiter({
   windowMs: 60 * 60 * 1000,
   maxRequests: 30,
 });
+
+async function canCreateEvent(user: any) {
+  if (user.role === "admin") return true;
+
+  const clubs = await Club.find({
+    ranks: {
+      $elemMatch: {
+        level: 1,
+        "users.srn": user.srn,
+      },
+    },
+  }).lean();
+
+  return clubs.length > 0;
+}
 
 export async function POST(req: Request) {
   try {
@@ -47,8 +63,16 @@ export async function POST(req: Request) {
     await connectDB();
 
     const user = await User.findById(payload.sub).lean();
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const allowed = await canCreateEvent(user);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Only club leads can create events" },
+        { status: 403 },
+      );
     }
 
     const body = await req.json();

@@ -1,21 +1,19 @@
 import Club from "@/lib/models/Club";
 
 export async function canUserEditEvent(user: any, event: any) {
-  if (user.role === "ADMIN") return true;
+  if (user.role === "admin") return true;
 
-  for (const entry of event.involvedClubs) {
-    const club = await Club.findById(entry.club);
-    if (!club) continue;
+  const clubIds = event.involvedClubs.map((entry: any) => entry.club);
 
-    const maxLevel = Math.max(...club.ranks.map((r: any) => r.level));
-    const topRanks = club.ranks.filter((r: any) => r.level === maxLevel);
+  const clubs = await Club.find({
+    _id: { $in: clubIds },
+    ranks: {
+      $elemMatch: {
+        level: 1,
+        "users.srn": user.srn,
+      },
+    },
+  }).lean();
 
-    const isHead = topRanks.some((rank: any) =>
-      rank.users.some((u: any) => u.srn === user.srn),
-    );
-
-    if (isHead) return true;
-  }
-
-  return false;
+  return clubs.length > 0;
 }

@@ -2,11 +2,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
+const CLUBS_KEY = "clubs";
+
 export function useUpdateClub(id: string) {
   const queryClient = useQueryClient();
   const router = useRouter();
 
   return useMutation({
+    mutationKey: ["update-club", id],
     mutationFn: async (clubData: any) => {
       const res = await fetch(`/api/clubs/${id}/edit`, {
         method: "PATCH",
@@ -21,10 +24,13 @@ export function useUpdateClub(id: string) {
     onMutate: () => {
       toast.loading("Saving changes…", { id: "update-club" });
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast.success("Club updated successfully", { id: "update-club" });
-      queryClient.invalidateQueries({ queryKey: ["club", id] });
-      queryClient.invalidateQueries({ queryKey: ["clubs"] });
+      queryClient.setQueryData([CLUBS_KEY, id], data);
+      queryClient.setQueryData([CLUBS_KEY], (old: any) => {
+        if (!old) return old;
+        return old.map((club: any) => (club._id === id ? data : club));
+      });
       router.refresh();
     },
     onError: (error: Error) => {
