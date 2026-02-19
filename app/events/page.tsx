@@ -206,7 +206,7 @@ export default function EventsPage() {
             return (
               <div
                 key={event._id}
-                className={`transition ${past ? "opacity-50 grayscale" : "hover:scale-[1.02] active:scale-[0.98]"}`}
+                className={`transition ${past ? "opacity-50 grayscale pointer-events-none" : "hover:scale-[1.02] active:scale-[0.98]"}`}
               >
                 <Link href={`/events/${event._id}`} className="block h-full">
                   <EventCard event={event} query={debouncedQuery} />

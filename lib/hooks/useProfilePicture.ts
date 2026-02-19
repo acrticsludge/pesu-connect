@@ -1,9 +1,11 @@
 import { useRef, useState } from "react";
 import toast from "react-hot-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function useProfilePicture(user: any, onSuccess?: (user: any) => void) {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -37,7 +39,7 @@ export function useProfilePicture(user: any, onSuccess?: (user: any) => void) {
         toast.error(data.error || "Upload failed", { id: toastId });
         return;
       }
-
+      queryClient.invalidateQueries({ queryKey: ["user"] });
       if (onSuccess) {
         onSuccess({ ...user, profilePic: data.url });
       }
