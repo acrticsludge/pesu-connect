@@ -292,7 +292,7 @@ export default function DashboardPage() {
   if (!user) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
-        <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
