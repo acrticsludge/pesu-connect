@@ -9,7 +9,8 @@ import { useCreateClub } from "@/lib/hooks/useCreateClub";
 export default function AddClubPage() {
   const router = useRouter();
   const { data: user, isLoading: userLoading } = useUser();
-  const createClub = useCreateClub();
+  const isAdmin = user?.role === "admin";
+  const createClub = useCreateClub(isAdmin);
 
   const [form, setForm] = useState({
     name: "",

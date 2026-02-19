@@ -28,7 +28,6 @@ export default function NewEventPage() {
   const queryClient = useQueryClient();
   const { data: user, isLoading: userLoading } = useUser();
   const { data: clubs = [], isLoading: clubsLoading } = useClubs();
-  const createEvent = useCreateEvent();
 
   const [form, setForm] = useState({
     name: "",
@@ -63,6 +62,7 @@ export default function NewEventPage() {
   }
 
   const isAdmin = user.role === "admin";
+  const createEvent = useCreateEvent(isAdmin);
   const canCreate =
     isAdmin ||
     clubs.some((club) => {

@@ -21,16 +21,28 @@ export async function validateInvolvedClubs(
     const club = await Club.findById(entry.club);
     if (!club) throw new Error("Invalid club");
 
-    if (!isUserClubHead(userSrn, club)) {
+    const isHead = club.ranks?.some(
+      (rank: any) =>
+        rank.level === 1 && rank.users?.some((u: any) => u.srn === userSrn),
+    );
+
+    if (!isHead) {
       throw new Error(`Not authorized for ${club.name}`);
     }
 
-    const domainValid = club.domains.some(
-      (d: any) => d._id.toString() === entry.domain.toString(),
+    if (!entry.domains || entry.domains.length === 0) {
+      throw new Error(`At least one domain required for ${club.name}`);
+    }
+
+    const clubDomainNames = club.domains.map((d: any) => d.name);
+    const invalidDomains = entry.domains.filter(
+      (domainName: string) => !clubDomainNames.includes(domainName),
     );
 
-    if (!domainValid) {
-      throw new Error(`Invalid domain for ${club.name}`);
+    if (invalidDomains.length > 0) {
+      throw new Error(
+        `Invalid domains for ${club.name}: ${invalidDomains.join(", ")}`,
+      );
     }
   }
 }

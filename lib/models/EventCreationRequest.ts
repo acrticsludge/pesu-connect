@@ -1,5 +1,10 @@
 import mongoose, { Schema, Types } from "mongoose";
 
+// Force schema update - delete old model if exists
+if (mongoose.models.EventCreationRequest) {
+  delete mongoose.models.EventCreationRequest;
+}
+
 const EventCreationRequestSchema = new Schema(
   {
     eventData: {
@@ -12,16 +17,18 @@ const EventCreationRequestSchema = new Schema(
       involvedClubs: [
         {
           club: { type: Types.ObjectId, ref: "Club", required: true },
-          domain: { type: Types.ObjectId, required: true },
+          domains: [{ type: String, required: true }],
         },
       ],
 
-      tag: { type: String, required: true },
-      category: {
-        type: String,
-        enum: ["TECHNICAL", "CULTURAL", "SPORTS"],
-        required: true,
-      },
+      tags: [{ type: String, required: true }],
+      categories: [
+        {
+          type: String,
+          enum: ["TECHNICAL", "CULTURAL", "SPORTS"],
+          required: true,
+        },
+      ],
 
       registration: {
         isRegister: { type: Boolean, required: true },
@@ -71,5 +78,8 @@ const EventCreationRequestSchema = new Schema(
   { timestamps: true },
 );
 
-export default mongoose.models.EventCreationRequest ||
-  mongoose.model("EventCreationRequest", EventCreationRequestSchema);
+const EventCreationRequest = mongoose.model(
+  "EventCreationRequest",
+  EventCreationRequestSchema,
+);
+export default EventCreationRequest;

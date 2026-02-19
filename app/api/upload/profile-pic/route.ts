@@ -5,6 +5,11 @@ import { connectDB } from "@/lib/db";
 import User from "@/lib/models/User";
 import cloudinary from "@/lib/cloudinary";
 import { RateLimiter } from "@/lib/rateLimiter";
+
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const runtime = "nodejs";
+
 const rateLimiter = new RateLimiter({
   windowMs: 60 * 60 * 1000,
   maxRequests: 5,
@@ -116,9 +121,3 @@ export async function POST(req: Request) {
     );
   }
 }
-
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};

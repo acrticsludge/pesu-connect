@@ -25,14 +25,16 @@ interface CreateEventData {
 
 const EVENTS_KEY = "events";
 
-export function useCreateEvent() {
+export function useCreateEvent(isAdmin: boolean = false) {
   const queryClient = useQueryClient();
   const router = useRouter();
 
   return useMutation({
     mutationKey: ["create-event"],
     mutationFn: async (data: CreateEventData) => {
-      const res = await fetch("/api/events/create", {
+      const endpoint = isAdmin ? "/api/events/create" : "/api/events/request";
+
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -43,13 +45,26 @@ export function useCreateEvent() {
       return result;
     },
     onMutate: () => {
-      toast.loading("Creating event...", { id: "create-event" });
+      toast.loading(isAdmin ? "Creating event..." : "Submitting request...", {
+        id: "create-event",
+      });
     },
     onSuccess: (data) => {
-      toast.success("Event created successfully!", { id: "create-event" });
-      queryClient.setQueryData([EVENTS_KEY, data._id], data);
-      queryClient.invalidateQueries({ queryKey: [EVENTS_KEY] });
-      router.push(`/events/${data._id}`);
+      toast.success(
+        isAdmin
+          ? "Event created successfully!"
+          : "Request submitted successfully!",
+        { id: "create-event" },
+      );
+
+      if (isAdmin) {
+        queryClient.setQueryData([EVENTS_KEY, data._id], data);
+        queryClient.invalidateQueries({ queryKey: [EVENTS_KEY] });
+        router.push(`/events/${data._id}`);
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["event-requests", "user"] });
+        router.push("/dashboard");
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message, { id: "create-event" });

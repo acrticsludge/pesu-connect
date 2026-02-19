@@ -2,12 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 
 async function fetchEventRequests(role: string) {
   const endpoint =
-    role === "admin"
-      ? "/api/admin/events/requests?status=pending"
-      : "/api/events/requests/me";
+    role === "admin" ? "/api/admin/events/requests" : "/api/events/requests/me";
 
   const res = await fetch(endpoint);
-  if (!res.ok) return { requests: [] };
+  if (!res.ok) return [];
   const data = await res.json();
   return data.requests || [];
 }

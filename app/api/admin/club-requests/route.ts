@@ -13,29 +13,34 @@ export async function GET(req: Request) {
     }
 
     const payload = verifyToken(token);
-    if (!payload) {
+    if (!payload?.sub) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await connectDB();
 
-    const admin = await User.findById(payload.sub).select("role name");
-    if (!admin || admin.role !== "admin") {
+    const user = await User.findById(payload.sub).lean();
+    if (!user || user.role !== "admin") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { searchParams } = new URL(req.url);
-    const status = searchParams.get("status") || "pending";
+    const status = searchParams.get("status");
 
-    const requests = await ClubCreationRequest.find({ status })
+    const filter: any = {};
+    if (status) {
+      filter.status = status;
+    }
+
+    const requests = await ClubCreationRequest.find(filter)
       .sort({ createdAt: -1 })
       .lean();
 
     return NextResponse.json({ requests });
-  } catch (err) {
-    console.error("Fetch club requests error:", err);
+  } catch (error) {
+    console.error("Error fetching club requests:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Failed to fetch club requests" },
       { status: 500 },
     );
   }

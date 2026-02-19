@@ -137,6 +137,7 @@ export default function DashboardPage() {
     [],
   );
   const [clubLogs, setClubLogs] = useState<ClubRequest[]>([]);
+  const [eventLogs, setEventLogs] = useState<EventRequest[]>([]);
 
   useEffect(() => {
     if (user?.role === "admin") {
@@ -146,10 +147,17 @@ export default function DashboardPage() {
       const pendingEvents = eventRequests.filter(
         (r: EventRequest) => r.status === "pending",
       );
-      const logs = clubRequests
+      const clubLogsData = clubRequests
         .filter((r: ClubRequest) => r.status !== "pending")
         .sort(
           (a: ClubRequest, b: ClubRequest) =>
+            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+        );
+
+      const eventLogsData = eventRequests
+        .filter((r: EventRequest) => r.status !== "pending")
+        .sort(
+          (a: EventRequest, b: EventRequest) =>
             new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
         );
 
@@ -161,8 +169,11 @@ export default function DashboardPage() {
       ) {
         setAdminEventRequests(pendingEvents);
       }
-      if (JSON.stringify(logs) !== JSON.stringify(clubLogs)) {
-        setClubLogs(logs);
+      if (JSON.stringify(clubLogsData) !== JSON.stringify(clubLogs)) {
+        setClubLogs(clubLogsData);
+      }
+      if (JSON.stringify(eventLogsData) !== JSON.stringify(eventLogs)) {
+        setEventLogs(eventLogsData);
       }
     }
   }, [
@@ -172,6 +183,7 @@ export default function DashboardPage() {
     adminClubRequests,
     adminEventRequests,
     clubLogs,
+    eventLogs,
   ]);
 
   const handleDeleteAnnouncement = async (id: string) => {
@@ -238,6 +250,8 @@ export default function DashboardPage() {
         return;
       }
       toast.success(`Request ${action}d`, { id: toastId });
+
+      queryClient.invalidateQueries({ queryKey: ["club-requests", "admin"] });
     } catch {
       toast.error("Network error", { id: toastId });
     }
@@ -258,6 +272,8 @@ export default function DashboardPage() {
         return;
       }
       toast.success(`Request ${action}d`, { id: toastId });
+
+      queryClient.invalidateQueries({ queryKey: ["event-requests", "admin"] });
     } catch {
       toast.error("Network error", { id: toastId });
     }
@@ -275,8 +291,8 @@ export default function DashboardPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="text-red-400">Please log in to view dashboard</div>
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -426,7 +442,7 @@ export default function DashboardPage() {
           >
             <div className="text-[10px] sm:text-xs text-white/60">Logs</div>
             <div className="text-sm sm:text-base md:text-xl font-bold text-white mt-0.5 sm:mt-1">
-              {clubLogs.length} History
+              {clubLogs.length + eventLogs.length} History
             </div>
           </button>
         )}
@@ -851,6 +867,68 @@ export default function DashboardPage() {
                         </h3>
                         <p className="text-xs sm:text-sm text-white/60 mt-0.5 sm:mt-1 line-clamp-2">
                           {req.clubData.shortDescription}
+                        </p>
+                        <div className="flex flex-wrap gap-2 sm:gap-3 mt-1.5 sm:mt-2 text-[10px] sm:text-xs text-white/40">
+                          <span>By: {req.requestedBy.name}</span>
+                          <span>SRN: {req.requestedBy.srn}</span>
+                          <span>Email: {req.requestedBy.email}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2 sm:gap-3 mt-1 text-[10px] sm:text-xs text-white/40">
+                          <span>Requested: {formatDate(req.createdAt)}</span>
+                          <span>Updated: {formatDate(req.updatedAt)}</span>
+                        </div>
+                        {req.handledBy && (
+                          <p className="text-[10px] sm:text-xs text-purple-400 mt-1.5 sm:mt-2">
+                            Handled by: {req.handledBy.name}
+                          </p>
+                        )}
+                        {req.adminRemark && (
+                          <p className="text-[10px] sm:text-xs text-white/40 mt-0.5 sm:mt-1">
+                            Remark: {req.adminRemark}
+                          </p>
+                        )}
+                      </div>
+                      <span
+                        className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs w-fit ${
+                          req.status === "approved"
+                            ? "bg-green-500/20 text-green-300"
+                            : req.status === "rejected"
+                              ? "bg-red-500/20 text-red-300"
+                              : req.status === "completed"
+                                ? "bg-blue-500/20 text-blue-300"
+                                : "bg-yellow-500/20 text-yellow-300"
+                        }`}
+                      >
+                        {req.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+          <section className="rounded-xl sm:rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-5 md:p-6">
+            <h2 className="text-base sm:text-lg font-bold text-white mb-3 sm:mb-4">
+              Event Request History
+            </h2>
+            {eventLogs.length === 0 ? (
+              <p className="text-sm sm:text-base text-white/60 text-center py-3 sm:py-4">
+                No event request history
+              </p>
+            ) : (
+              <div className="space-y-3 sm:space-y-4">
+                {eventLogs.map((req: EventRequest) => (
+                  <div
+                    key={req._id}
+                    className="p-3 sm:p-4 rounded-xl bg-white/5 border border-white/10"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm sm:text-base font-semibold text-white">
+                          {req.eventData.name}
+                        </h3>
+                        <p className="text-xs sm:text-sm text-white/60 mt-0.5 sm:mt-1 line-clamp-2">
+                          {req.eventData.shortDescription}
                         </p>
                         <div className="flex flex-wrap gap-2 sm:gap-3 mt-1.5 sm:mt-2 text-[10px] sm:text-xs text-white/40">
                           <span>By: {req.requestedBy.name}</span>

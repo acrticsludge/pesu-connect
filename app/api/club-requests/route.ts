@@ -13,29 +13,13 @@ export async function POST(req: Request) {
     }
 
     const payload = verifyToken(token);
-    if (!payload) {
+    if (!payload?.sub) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await connectDB();
 
-    const user = await User.findById(payload.sub).select("name srn email role");
-
-    const existingRequest = await ClubCreationRequest.findOne({
-      "requestedBy.userId": user._id,
-      status: { $in: ["pending", "approved"] },
-    });
-
-    if (existingRequest) {
-      return NextResponse.json(
-        {
-          message:
-            "You already have an active club creation request. Please wait for it to be resolved.",
-        },
-        { status: 409 },
-      );
-    }
-
+    const user = await User.findById(payload.sub).lean();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -44,6 +28,21 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: "Only students can send club requests" },
         { status: 403 },
+      );
+    }
+
+    const existingRequest = await ClubCreationRequest.findOne({
+      "requestedBy.userId": user._id,
+      status: { $in: ["pending", "approved"] },
+    }).lean();
+
+    if (existingRequest) {
+      return NextResponse.json(
+        {
+          message:
+            "You already have an active club creation request. Please wait for it to be resolved.",
+        },
+        { status: 409 },
       );
     }
 
@@ -65,6 +64,8 @@ export async function POST(req: Request) {
         srn: user.srn,
         email: user.email,
       },
+      status: "pending",
+      createdAt: new Date(),
     });
 
     return NextResponse.json(request, { status: 201 });

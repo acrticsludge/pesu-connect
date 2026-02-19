@@ -5,43 +5,34 @@ import { connectDB } from "@/lib/db";
 import User from "@/lib/models/User";
 import EventCreationRequest from "@/lib/models/EventCreationRequest";
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
     const token = (await cookies()).get("auth_token")?.value;
     if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ requests: [] });
     }
 
     const payload = verifyToken(token);
     if (!payload?.sub) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ requests: [] });
     }
 
     await connectDB();
 
     const user = await User.findById(payload.sub).lean();
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!user) {
+      return NextResponse.json({ requests: [] });
     }
 
-    const { searchParams } = new URL(req.url);
-    const status = searchParams.get("status");
-
-    const filter: any = {};
-    if (status) {
-      filter.status = status;
-    }
-
-    const requests = await EventCreationRequest.find(filter)
+    const requests = await EventCreationRequest.find({
+      "requestedBy.srn": user.srn,
+    })
       .sort({ createdAt: -1 })
       .lean();
 
     return NextResponse.json({ requests });
   } catch (error) {
     console.error("Error fetching event requests:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch event requests" },
-      { status: 500 },
-    );
+    return NextResponse.json({ requests: [] });
   }
 }
