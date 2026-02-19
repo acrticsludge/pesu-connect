@@ -141,6 +141,7 @@ export default function EditClubPage() {
       },
     });
   };
+
   const saveWith = async (data: Club) => {
     setSaving(true);
     updateClub.mutate(data, {
@@ -205,7 +206,7 @@ export default function EditClubPage() {
         <input
           className="w-full rounded-xl bg-white/10 px-3 sm:px-4 py-2.5 sm:py-3 text-white text-sm sm:text-base border border-white/10 focus:border-purple-500/50 focus:outline-none disabled:opacity-50"
           disabled={clubLocked || saving}
-          value={localClub.name}
+          value={localClub.name ?? ""}
           onChange={(e) => setLocalClub({ ...localClub, name: e.target.value })}
           placeholder="Club name"
         />
@@ -227,7 +228,7 @@ export default function EditClubPage() {
           }`}
         >
           <ReactQuill
-            value={localClub?.fullDescription || ""}
+            value={localClub?.fullDescription ?? ""}
             readOnly={clubLocked || saving}
             onChange={(html) =>
               setLocalClub((prev) =>
@@ -259,7 +260,7 @@ export default function EditClubPage() {
           type="date"
           disabled={clubLocked || saving}
           className="w-full rounded-xl bg-white/10 px-3 sm:px-4 py-2.5 sm:py-3 text-white text-sm sm:text-base border border-white/10 focus:border-purple-500/50 focus:outline-none disabled:opacity-50"
-          value={localClub.foundedOn.slice(0, 10)}
+          value={localClub.foundedOn?.slice(0, 10) ?? ""}
           onChange={(e) =>
             setLocalClub({ ...localClub, foundedOn: e.target.value })
           }
@@ -304,7 +305,7 @@ export default function EditClubPage() {
           <input
             type="checkbox"
             disabled={clubLocked || saving}
-            checked={localClub.isRecruiting}
+            checked={localClub.isRecruiting ?? false}
             onChange={(e) =>
               setLocalClub({ ...localClub, isRecruiting: e.target.checked })
             }
@@ -379,7 +380,7 @@ export default function EditClubPage() {
             <div className="flex gap-2 items-center">
               <input
                 className="flex-1 rounded-lg bg-white/10 px-2 sm:px-3 py-2 sm:py-3 text-white text-xs sm:text-sm"
-                value={rank.name}
+                value={rank.name ?? ""}
                 onChange={(e) => {
                   setLocalClub({
                     ...localClub,
@@ -528,7 +529,7 @@ export default function EditClubPage() {
               <input
                 className="w-full rounded-lg bg-white/10 px-3 sm:px-4 py-2 sm:py-3 text-white text-xs sm:text-sm border border-white/10 focus:border-purple-500/50 focus:outline-none disabled:opacity-50"
                 disabled={domainLocked}
-                value={domain.name}
+                value={domain.name ?? ""}
                 onChange={(e) => {
                   const d = [...localClub.domains];
                   d[di].name = e.target.value;
@@ -563,7 +564,7 @@ export default function EditClubPage() {
                     <div className="flex gap-2 items-center">
                       <input
                         className="flex-1 rounded-lg bg-white/10 px-2 sm:px-3 py-2 text-white text-xs sm:text-sm"
-                        value={rank.name}
+                        value={rank.name ?? ""}
                         onChange={(e) => {
                           const d = [...localClub.domains];
                           d[di].ranks[ri].name = e.target.value;

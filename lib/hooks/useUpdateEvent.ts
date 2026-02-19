@@ -26,12 +26,15 @@ export function useUpdateEvent(id: string) {
     },
     onSuccess: (data) => {
       toast.success("Event updated successfully", { id: "update-event" });
-      queryClient.setQueryData([EVENTS_KEY, id], data);
+
+      // Update cache
+      queryClient.setQueryData([EVENTS_KEY, id], data.event || data);
       queryClient.setQueryData([EVENTS_KEY], (old: any) => {
         if (!old) return old;
-        return old.map((event: any) => (event._id === id ? data : event));
+        return old.map((event: any) =>
+          event._id === id ? data.event || data : event,
+        );
       });
-      router.refresh();
     },
     onError: (error: Error) => {
       toast.error(error.message, { id: "update-event" });

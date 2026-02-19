@@ -25,8 +25,11 @@ export function useDeleteEvent(id: string) {
     onSuccess: () => {
       toast.success("Event deleted", { id: "delete-event" });
       queryClient.removeQueries({ queryKey: [EVENTS_KEY, id] });
-      queryClient.invalidateQueries({ queryKey: [EVENTS_KEY] });
-      router.refresh();
+      queryClient.setQueryData([EVENTS_KEY], (oldData: any) => {
+        if (!oldData) return oldData;
+        return oldData.filter((event: any) => event._id !== id);
+      });
+      router.push("/events");
     },
     onError: (error: Error) => {
       toast.error(error.message, { id: "delete-event" });

@@ -31,6 +31,7 @@ export function useUpdateClub(id: string) {
         if (!old) return old;
         return old.map((club: any) => (club._id === id ? data : club));
       });
+      router.push(`/clubs/${id}`);
       router.refresh();
     },
     onError: (error: Error) => {

@@ -151,6 +151,8 @@ export default function EditEventPage() {
   };
 
   const handleSave = async () => {
+    if (updateEvent.isPending) return;
+
     if (!localEvent.name?.trim()) {
       toast.error("Event name is required");
       return;
@@ -184,8 +186,9 @@ export default function EditEventPage() {
 
     updateEvent.mutate(localEvent, {
       onSuccess: () => {
-        router.push(`/events/${id}`);
-        router.refresh();
+        setTimeout(() => {
+          router.push(`/events/${localEvent._id}`);
+        }, 100);
       },
     });
   };
@@ -242,7 +245,7 @@ export default function EditEventPage() {
 
         <input
           className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm sm:text-base border border-white/10 focus:border-purple-500/50 focus:outline-none"
-          value={localEvent.name}
+          value={localEvent.name ?? ""}
           onChange={(e) =>
             setLocalEvent({ ...localEvent, name: e.target.value })
           }
@@ -253,7 +256,7 @@ export default function EditEventPage() {
         <textarea
           rows={2}
           className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm sm:text-base border border-white/10 focus:border-purple-500/50 focus:outline-none"
-          value={localEvent.shortDescription || ""}
+          value={localEvent.shortDescription ?? ""}
           onChange={(e) =>
             setLocalEvent({ ...localEvent, shortDescription: e.target.value })
           }
@@ -264,7 +267,7 @@ export default function EditEventPage() {
 
         <div className="w-full rounded-xl bg-white/10 px-3 sm:px-4 py-3">
           <ReactQuill
-            value={localEvent.fullDescription || ""}
+            value={localEvent.fullDescription ?? ""}
             onChange={(html) =>
               setLocalEvent({ ...localEvent, fullDescription: html })
             }
@@ -298,7 +301,8 @@ export default function EditEventPage() {
               type="datetime-local"
               className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm sm:text-base border border-white/10 focus:border-purple-500/50 focus:outline-none"
               value={
-                localEvent.startDate
+                localEvent.startDate &&
+                !isNaN(new Date(localEvent.startDate).getTime())
                   ? new Date(localEvent.startDate).toISOString().slice(0, 16)
                   : ""
               }
@@ -319,7 +323,8 @@ export default function EditEventPage() {
               type="datetime-local"
               className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm sm:text-base border border-white/10 focus:border-purple-500/50 focus:outline-none"
               value={
-                localEvent.endDate
+                localEvent.endDate &&
+                !isNaN(new Date(localEvent.endDate).getTime())
                   ? new Date(localEvent.endDate).toISOString().slice(0, 16)
                   : ""
               }
@@ -336,7 +341,7 @@ export default function EditEventPage() {
 
         <input
           className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm sm:text-base border border-white/10 focus:border-purple-500/50 focus:outline-none"
-          value={localEvent.venue || ""}
+          value={localEvent.venue ?? ""}
           onChange={(e) =>
             setLocalEvent({ ...localEvent, venue: e.target.value })
           }
@@ -385,7 +390,7 @@ export default function EditEventPage() {
               >
                 <input
                   type="checkbox"
-                  checked={localEvent.categories?.includes(cat)}
+                  checked={localEvent.categories?.includes(cat) ?? false}
                   onChange={() => handleCategoryToggle(cat)}
                   disabled={updateEvent.isPending}
                   className="cursor-pointer"
@@ -406,7 +411,7 @@ export default function EditEventPage() {
               >
                 <input
                   type="checkbox"
-                  checked={localEvent.tags?.includes(tag)}
+                  checked={localEvent.tags?.includes(tag) ?? false}
                   onChange={() => handleTagToggle(tag)}
                   disabled={updateEvent.isPending}
                   className="cursor-pointer"
@@ -423,7 +428,7 @@ export default function EditEventPage() {
 
         <input
           className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm sm:text-base border border-white/10 focus:border-purple-500/50 focus:outline-none"
-          value={localEvent.bannerUrl || ""}
+          value={localEvent.bannerUrl ?? ""}
           onChange={(e) =>
             setLocalEvent({ ...localEvent, bannerUrl: e.target.value })
           }
@@ -478,7 +483,7 @@ export default function EditEventPage() {
 
               <select
                 className="w-full rounded-lg bg-[#1a1a2e] px-3 py-3 text-white border border-white/10 text-sm focus:border-purple-500/50 focus:outline-none disabled:opacity-50"
-                value={clubId || ""}
+                value={clubId ?? ""}
                 onChange={(e) =>
                   handleInvolvedClubChange(index, "club", e.target.value)
                 }
@@ -529,7 +534,7 @@ export default function EditEventPage() {
                       <select
                         multiple
                         className="w-full rounded-lg bg-[#1a1a2e] px-3 py-3 text-white border border-white/10 min-h-30 text-sm focus:border-purple-500/50 focus:outline-none disabled:opacity-50"
-                        value={ic.domains || []}
+                        value={ic.domains ?? []}
                         onChange={(e) =>
                           handleInvolvedClubChange(
                             index,
@@ -596,7 +601,7 @@ export default function EditEventPage() {
         <label className="flex items-center gap-3 text-white text-sm cursor-pointer">
           <input
             type="checkbox"
-            checked={localEvent.registration?.isRegister}
+            checked={localEvent.registration?.isRegister ?? false}
             onChange={(e) =>
               setLocalEvent({
                 ...localEvent,
@@ -625,7 +630,8 @@ export default function EditEventPage() {
                 type="datetime-local"
                 className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm border border-white/10 focus:border-purple-500/50 focus:outline-none disabled:opacity-50"
                 value={
-                  localEvent.registration.deadline
+                  localEvent.registration.deadline &&
+                  !isNaN(new Date(localEvent.registration.deadline).getTime())
                     ? new Date(localEvent.registration.deadline)
                         .toISOString()
                         .slice(0, 16)
@@ -648,7 +654,7 @@ export default function EditEventPage() {
 
             <input
               className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm border border-white/10 focus:border-purple-500/50 focus:outline-none disabled:opacity-50"
-              value={localEvent.registration.link || ""}
+              value={localEvent.registration.link ?? ""}
               onChange={(e) =>
                 setLocalEvent({
                   ...localEvent,
@@ -665,7 +671,7 @@ export default function EditEventPage() {
             <textarea
               rows={2}
               className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm border border-white/10 focus:border-purple-500/50 focus:outline-none disabled:opacity-50"
-              value={localEvent.registration.methodText || ""}
+              value={localEvent.registration.methodText ?? ""}
               onChange={(e) =>
                 setLocalEvent({
                   ...localEvent,
@@ -691,7 +697,7 @@ export default function EditEventPage() {
           <label className="flex items-center gap-3 text-white text-sm cursor-pointer">
             <input
               type="checkbox"
-              checked={localEvent.isPinned || false}
+              checked={localEvent.isPinned ?? false}
               onChange={(e) =>
                 setLocalEvent({ ...localEvent, isPinned: e.target.checked })
               }

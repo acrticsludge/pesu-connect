@@ -26,9 +26,15 @@ export function useDeleteClub(id: string) {
     },
     onSuccess: () => {
       toast.success("Club deleted", { id: "delete-club" });
+
       queryClient.removeQueries({ queryKey: [CLUBS_KEY, id] });
-      queryClient.invalidateQueries({ queryKey: [CLUBS_KEY] });
-      router.refresh();
+
+      queryClient.setQueryData([CLUBS_KEY], (oldData: any) => {
+        if (!oldData) return oldData;
+        return oldData.filter((club: any) => club._id !== id);
+      });
+
+      router.push("/clubs");
     },
     onError: (error: Error) => {
       toast.error(error.message, { id: "delete-club" });
