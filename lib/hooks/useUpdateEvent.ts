@@ -19,22 +19,28 @@ export function useUpdateEvent(id: string) {
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to update event");
-      return data;
+
+      // Extract the event from nested structure if needed
+      return data.event || data;
     },
     onMutate: () => {
       toast.loading("Saving changes…", { id: "update-event" });
     },
-    onSuccess: (data) => {
-      toast.success("Event updated successfully", { id: "update-event" });
+    onSuccess: (updatedEvent) => {
+      // Update individual event cache
+      queryClient.setQueryData([EVENTS_KEY, id], updatedEvent);
 
-      // Update cache
-      queryClient.setQueryData([EVENTS_KEY, id], data.event || data);
+      // Update list cache if it exists
       queryClient.setQueryData([EVENTS_KEY], (old: any) => {
         if (!old) return old;
         return old.map((event: any) =>
-          event._id === id ? data.event || data : event,
+          event._id === id ? updatedEvent : event,
         );
       });
+
+      toast.success("Event updated successfully", { id: "update-event" });
+      router.push(`/events/${id}`);
+      router.refresh();
     },
     onError: (error: Error) => {
       toast.error(error.message, { id: "update-event" });

@@ -4,7 +4,7 @@ import { BaseEventData } from "@/lib/types/event";
 const EVENTS_KEY = "events";
 
 async function fetchEvents(): Promise<BaseEventData[]> {
-  const res = await fetch("/api/events");
+  const res = await fetch(`/api/events?t=${Date.now()}`);
   if (!res.ok) {
     throw new Error("Failed to fetch events");
   }
@@ -18,7 +18,8 @@ export function useEvents() {
     queryFn: fetchEvents,
     staleTime: 0,
     gcTime: 0,
-    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     retry: 3,
   });
@@ -38,12 +39,8 @@ export function useEvent(id: string | undefined) {
       const data = await res.json();
       return data.event || data;
     },
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
     enabled: !!id && id !== "undefined",
     retry: 1,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
   });
 }
 
@@ -53,7 +50,7 @@ export function usePrefetchEvents() {
     queryClient.prefetchQuery({
       queryKey: [EVENTS_KEY],
       queryFn: fetchEvents,
-      staleTime: 5 * 60 * 1000,
+      staleTime: 0,
     });
   };
 }

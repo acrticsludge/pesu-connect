@@ -49,7 +49,7 @@ export default function ClubPage() {
       <div className="relative h-56 sm:h-72 md:h-80 w-full">
         <Image
           src={club.banner?.url || FALLBACK_BANNER}
-          alt={club.banner?.alt || club.name}
+          alt={club.banner?.alt || club.name || "Club Banner"}
           fill
           className="object-cover"
           priority
@@ -177,7 +177,7 @@ export default function ClubPage() {
                 <div className="flex flex-wrap gap-1">
                   <span>Founded in</span>
                   <span className="text-white font-medium">
-                    {new Date(club.foundedOn).getFullYear()}
+                    {new Date(club.foundedOn).getFullYear() || ""}
                   </span>
                 </div>
 

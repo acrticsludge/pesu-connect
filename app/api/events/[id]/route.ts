@@ -6,12 +6,6 @@ import User from "@/lib/models/User";
 import Event from "@/lib/models/Event";
 import Club from "@/lib/models/Club";
 import { RateLimiter } from "@/lib/rateLimiter";
-import { LRUCache } from "lru-cache";
-
-const eventCache = new LRUCache<string, any>({
-  max: 100,
-  ttl: 1000 * 60 * 5,
-});
 
 const rateLimiter = new RateLimiter({
   windowMs: 60 * 60 * 1000,
@@ -59,16 +53,6 @@ export async function GET(
 
     const { id } = await params;
 
-    const cached = eventCache.get(id);
-    if (cached) {
-      return NextResponse.json(cached, {
-        headers: {
-          "Cache-Control": "private, max-age=300",
-          "X-Cache": "HIT",
-        },
-      });
-    }
-
     await connectDB();
 
     const event = await Event.findById(id)
@@ -79,14 +63,13 @@ export async function GET(
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
     }
 
-    eventCache.set(id, { event });
-
     return NextResponse.json(
       { event },
       {
         headers: {
-          "Cache-Control": "private, max-age=300",
-          "X-Cache": "MISS",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
         },
       },
     );
@@ -178,12 +161,11 @@ export async function PATCH(
       { new: true, runValidators: true },
     ).populate("involvedClubs.club", "name banner");
 
-    eventCache.delete(id);
-
     return NextResponse.json(
       { event: updatedEvent },
       {
         headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
           "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
         },
       },
@@ -238,8 +220,6 @@ export async function DELETE(
     if (!event) {
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
     }
-
-    eventCache.delete(id);
 
     return NextResponse.json({ success: true });
   } catch (error) {

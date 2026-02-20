@@ -25,6 +25,9 @@ export function useUpdateClub(id: string) {
       toast.loading("Saving changes…", { id: "update-club" });
     },
     onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["clubs"] });
+      queryClient.invalidateQueries({ queryKey: ["clubs", id] });
+
       toast.success("Club updated successfully", { id: "update-club" });
       queryClient.setQueryData([CLUBS_KEY, id], data);
       queryClient.setQueryData([CLUBS_KEY], (old: any) => {

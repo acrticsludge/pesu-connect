@@ -8,23 +8,11 @@ const searchCache = new LRUCache<string, any>({
   ttl: 1000 * 60 * 2,
 });
 
-export async function GET(req: Request) {
+export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(req.url);
-
-    const cacheKey = searchParams.toString();
-    const cached = searchCache.get(cacheKey);
-    if (cached) {
-      return NextResponse.json(cached, {
-        headers: {
-          "Cache-Control": "private, max-age=120",
-          "X-Cache": "HIT",
-        },
-      });
-    }
-
     await connectDB();
 
+    const { searchParams } = new URL(request.url);
     const q = searchParams.get("q");
     const campus = searchParams.get("campus");
     const category = searchParams.get("category");
@@ -80,12 +68,11 @@ export async function GET(req: Request) {
       },
     };
 
-    searchCache.set(cacheKey, response);
-
     return NextResponse.json(response, {
       headers: {
-        "Cache-Control": "private, max-age=120",
-        "X-Cache": "MISS",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        Pragma: "no-cache",
+        Expires: "0",
       },
     });
   } catch (error) {

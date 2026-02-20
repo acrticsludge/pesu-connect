@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import EventCard from "../Cards/EventCards/EventCard";
 import { BaseEventData } from "@/lib/types/event";
 import Link from "next/link";
@@ -9,6 +9,7 @@ import { useDebounce } from "@/lib/hooks/useDebounce";
 import { useEventSuggestions } from "@/lib/hooks/useEventSuggestions";
 import { useUser } from "@/lib/hooks/useUser";
 import { useClubs } from "@/lib/hooks/useClubs";
+import { useQueryClient } from "@tanstack/react-query";
 
 const isPastEvent = (event: BaseEventData) =>
   new Date(event.endDate).getTime() < Date.now();
@@ -57,7 +58,12 @@ export default function EventsPage() {
   const [query, setQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [campusFilter, setCampusFilter] = useState<"ALL" | "EC" | "RR">("ALL");
-
+  const [refreshKey, setRefreshKey] = useState(0);
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ["events"] });
+    setRefreshKey((prev) => prev + 1);
+  }, [queryClient]);
   const debouncedQuery = useDebounce(query, 250);
   const { data: events = [], isLoading } = useEvents();
   const suggestions = useEventSuggestions(events, debouncedQuery);
@@ -116,7 +122,10 @@ export default function EventsPage() {
   }, [events, debouncedQuery, campusFilter]);
 
   return (
-    <div className="relative min-h-screen px-4 sm:px-8 py-10 sm:py-12 overflow-x-hidden">
+    <div
+      key={refreshKey}
+      className="relative min-h-screen px-4 sm:px-8 py-10 sm:py-12 overflow-x-hidden"
+    >
       <div className="max-w-7xl mx-auto text-center mb-10">
         <h1 className="text-2xl sm:text-4xl font-extrabold text-white">
           Explore Events
