@@ -208,10 +208,8 @@ export default function DashboardPage() {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
 
-      // Clear all caches
       queryClient.clear();
 
-      // Force a complete page reload
       window.location.href = "/";
 
       toast.success("Logged out successfully", { id: toastId });
@@ -603,6 +601,46 @@ export default function DashboardPage() {
                 </div>
               )}
             </section>
+          )}
+          {user.role !== "admin" && (
+            <>
+              <section className="rounded-xl sm:rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-5 md:p-6">
+                <h2 className="text-base sm:text-lg font-bold text-white mb-3 sm:mb-4">
+                  Quick Actions
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <Link href="/clubs/new">
+                    <button className="w-full p-4 rounded-xl bg-purple-600/20 border border-purple-500/30 hover:bg-purple-600/30 transition text-left">
+                      <h3 className="text-sm sm:text-base font-semibold text-white">
+                        Create a Club
+                      </h3>
+                      <p className="text-xs sm:text-sm text-white/60 mt-1">
+                        Start a new club on campus
+                      </p>
+                    </button>
+                  </Link>
+
+                  {clubs.some((club) =>
+                    club.ranks?.some(
+                      (rank) =>
+                        rank.level === 1 &&
+                        rank.users?.some((u) => u.srn === user?.srn),
+                    ),
+                  ) && (
+                    <Link href="/events/new">
+                      <button className="w-full p-4 rounded-xl bg-green-600/20 border border-green-500/30 hover:bg-green-600/30 transition text-left">
+                        <h3 className="text-sm sm:text-base font-semibold text-white">
+                          Create Event
+                        </h3>
+                        <p className="text-xs sm:text-sm text-white/60 mt-1">
+                          Host a new event for your club
+                        </p>
+                      </button>
+                    </Link>
+                  )}
+                </div>
+              </section>
+            </>
           )}
         </div>
       )}
