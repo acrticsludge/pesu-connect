@@ -71,9 +71,9 @@ export default function NewEventPage() {
     isAdmin ||
     clubs.some((club) => {
       if (!club.ranks?.length) return false;
-      const max = Math.max(...club.ranks.map((r) => r.level));
+
       return club.ranks
-        .filter((r) => r.level === max)
+        .filter((r) => r.level === 1)
         .some((r) => r.users?.some((u) => u.srn === user.srn));
     });
 
