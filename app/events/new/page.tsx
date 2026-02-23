@@ -49,9 +49,14 @@ export default function NewEventPage() {
     campus: "RR" as "RR" | "EC",
     isPinned: false,
   });
+
+  const isAdmin = user?.role === "admin";
+  const createEvent = useCreateEvent(isAdmin);
+
   useEffect(() => {
     queryClient.invalidateQueries({ queryKey: ["clubs"] });
   }, []);
+
   if (userLoading || clubsLoading) {
     return <div className="text-center py-20 text-[#A3A3A3]">Loading...</div>;
   }
@@ -61,8 +66,6 @@ export default function NewEventPage() {
     return null;
   }
 
-  const isAdmin = user.role === "admin";
-  const createEvent = useCreateEvent(isAdmin);
   const canCreate =
     isAdmin ||
     clubs.some((club) => {
@@ -154,7 +157,6 @@ export default function NewEventPage() {
       },
     );
   };
-
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 sm:py-10 space-y-6 sm:space-y-8 text-white overflow-x-hidden">
       <div className="space-y-2">

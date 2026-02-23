@@ -8,7 +8,7 @@ import { useUser } from "@/lib/hooks/useUser";
 export default function NavBar() {
   const { data: user, isLoading } = useUser();
   const router = useRouter();
-
+  console.log("NavBar rendering with user:", user);
   return (
     <header className="sticky top-0 z-50 w-full bg-black/30 backdrop-blur-xl shadow-[0_8px_24px_-10px_rgba(168,85,247,0.45)]">
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-linear-to-r from-transparent via-purple-500/70 to-transparent" />

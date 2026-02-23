@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
+import { usePathname } from "next/navigation";
 
 export type User = {
+  _id: string;
   name: string;
   srn: string;
   email: string;
@@ -9,7 +11,8 @@ export type User = {
 } | null;
 
 async function fetchUser(): Promise<User> {
-  const res = await fetch("/api/auth/me");
+  // Add timestamp to prevent caching
+  const res = await fetch(`/api/auth/me?t=${Date.now()}`);
   if (!res.ok) {
     return null;
   }
@@ -18,13 +21,16 @@ async function fetchUser(): Promise<User> {
 }
 
 export function useUser() {
+  const pathname = usePathname();
+
   return useQuery({
-    queryKey: ["user"],
+    queryKey: ["user", pathname], // Include pathname in query key
     queryFn: fetchUser,
     staleTime: 0,
     gcTime: 0,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: true,
-    retry: 1,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false, // Disable window focus refetch
+    refetchOnReconnect: false, // Disable reconnect refetch
+    retry: false,
   });
 }

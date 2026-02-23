@@ -21,6 +21,18 @@ function highlight(text: string, query: string) {
   );
 }
 
+const FALLBACK_BANNER = "/placeholder-banner.png";
+
+const isValidImageUrl = (url?: string) => {
+  if (!url) return false;
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return url.startsWith("/");
+  }
+};
+
 export default function ClubCard({
   club,
   query = "",
@@ -33,10 +45,13 @@ export default function ClubCard({
     [club.foundedOn],
   );
 
-  const bannerSrc = useMemo(
-    () => club.banner?.url || "/placeholder-banner.png",
-    [club.banner?.url],
-  );
+  const bannerSrc = useMemo(() => {
+    const url = club.banner?.url;
+    if (url && isValidImageUrl(url)) {
+      return url;
+    }
+    return FALLBACK_BANNER;
+  }, [club.banner?.url]);
 
   const bannerAlt = useMemo(
     () => club.banner?.alt || club.name,

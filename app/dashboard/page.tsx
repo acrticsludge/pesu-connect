@@ -121,6 +121,8 @@ export default function DashboardPage() {
     user?.role === "admin" ? "admin" : "user",
   );
 
+  const { refetch } = useUser();
+
   const { uploading, fileInputRef, handleUpload } = useProfilePicture(
     user,
     () => {
@@ -205,12 +207,14 @@ export default function DashboardPage() {
     const toastId = toast.loading("Logging out...");
     try {
       await fetch("/api/auth/logout", { method: "POST" });
-      localStorage.clear();
-      sessionStorage.clear();
+
+      // Clear all caches
       queryClient.clear();
+
+      // Force a complete page reload
+      window.location.href = "/";
+
       toast.success("Logged out successfully", { id: toastId });
-      router.push("/");
-      router.refresh();
     } catch {
       toast.error("Failed to logout", { id: toastId });
     }
