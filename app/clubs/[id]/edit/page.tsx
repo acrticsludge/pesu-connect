@@ -16,6 +16,7 @@ import { useAllSrns } from "@/lib/hooks/useAllSrns";
 import { useUpdateClub } from "@/lib/hooks/useUpdateClub";
 import { useDeleteClub } from "@/lib/hooks/useDeleteClub";
 import { useQueryClient } from "@tanstack/react-query";
+import { BannerUpload } from "@/app/Cards/BannerCards/BannerUpload";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), {
   ssr: false,
@@ -272,17 +273,15 @@ export default function EditClubPage() {
           Media & Links
         </h2>
 
-        <input
-          className="w-full rounded-xl bg-white/10 px-3 sm:px-4 py-2.5 sm:py-3 text-white text-sm sm:text-base border border-white/10 focus:border-purple-500/50 focus:outline-none disabled:opacity-50"
-          disabled={clubLocked || saving}
-          value={localClub.banner?.url ?? ""}
-          onChange={(e) =>
+        <BannerUpload
+          currentImage={localClub.banner?.url}
+          onUpload={(url) =>
             setLocalClub({
               ...localClub,
-              banner: { ...localClub.banner!, url: e.target.value },
+              banner: { ...localClub.banner!, url },
             })
           }
-          placeholder="Banner image URL"
+          folder="club-banners"
         />
 
         <input

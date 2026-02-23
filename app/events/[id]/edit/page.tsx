@@ -11,6 +11,7 @@ import { useEvent } from "@/lib/hooks/useEvents";
 import { useUpdateEvent } from "@/lib/hooks/useUpdateEvent";
 import { useState, useMemo } from "react";
 import { useDeleteEvent } from "@/lib/hooks/useDeleteEvent";
+import { BannerUpload } from "@/app/Cards/BannerCards/BannerUpload";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), {
   ssr: false,
@@ -426,14 +427,10 @@ export default function EditEventPage() {
       <section className="space-y-4">
         <h2 className="text-xs sm:text-sm uppercase text-purple-300">Banner</h2>
 
-        <input
-          className="w-full rounded-xl bg-white/10 px-4 py-3 text-white text-sm sm:text-base border border-white/10 focus:border-purple-500/50 focus:outline-none"
-          value={localEvent.bannerUrl ?? ""}
-          onChange={(e) =>
-            setLocalEvent({ ...localEvent, bannerUrl: e.target.value })
-          }
-          placeholder="Banner image URL"
-          disabled={updateEvent.isPending}
+        <BannerUpload
+          currentImage={localEvent.bannerUrl}
+          onUpload={(url) => setLocalEvent({ ...localEvent, bannerUrl: url })}
+          folder="event-banners"
         />
       </section>
 

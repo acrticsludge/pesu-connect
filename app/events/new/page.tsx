@@ -9,6 +9,7 @@ import { useUser } from "@/lib/hooks/useUser";
 import { useClubs } from "@/lib/hooks/useClubs";
 import { useCreateEvent } from "@/lib/hooks/useCreateEvent";
 import { useQueryClient } from "@tanstack/react-query";
+import { BannerUpload } from "@/app/Cards/BannerCards/BannerUpload";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
 
@@ -157,6 +158,7 @@ export default function NewEventPage() {
       },
     );
   };
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 sm:py-10 space-y-6 sm:space-y-8 text-white overflow-x-hidden">
       <div className="space-y-2">
@@ -210,12 +212,11 @@ export default function NewEventPage() {
         </div>
       </Field>
 
-      <Field label="Banner Image URL">
-        <Input
-          placeholder="https://example.com/banner.jpg"
-          value={form.bannerUrl}
-          onChange={(v) => setForm({ ...form, bannerUrl: v })}
-          disabled={createEvent.isPending}
+      <Field label="Banner Image">
+        <BannerUpload
+          currentImage={form.bannerUrl}
+          onUpload={(url) => setForm({ ...form, bannerUrl: url })}
+          folder="event-banners"
         />
       </Field>
 

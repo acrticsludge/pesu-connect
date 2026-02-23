@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { useUser } from "@/lib/hooks/useUser";
 import { useCreateClub } from "@/lib/hooks/useCreateClub";
+import { BannerUpload } from "@/app/Cards/BannerCards/BannerUpload";
 
 export default function AddClubPage() {
   const router = useRouter();
@@ -98,12 +99,10 @@ export default function AddClubPage() {
           />
         </div>
 
-        <input
-          className="w-full rounded-xl bg-white/10 border border-white/10 px-3 sm:px-4 py-2.5 sm:py-3 text-white text-sm sm:text-base outline-none focus:border-purple-500/50 transition disabled:opacity-50"
-          placeholder="Banner image URL (optional)"
-          value={form.bannerUrl}
-          onChange={(e) => setForm({ ...form, bannerUrl: e.target.value })}
-          disabled={createClub.isPending}
+        <BannerUpload
+          currentImage={form.bannerUrl}
+          onUpload={(url) => setForm({ ...form, bannerUrl: url })}
+          folder="club-banners"
         />
 
         <input
