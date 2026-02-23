@@ -444,7 +444,11 @@ export default function EditClubPage() {
                       ),
                     };
 
-                    if (rank.level === 1 && !isAdmin) {
+                    if (
+                      u.srn === actualUser.srn &&
+                      rank.level === 1 &&
+                      !isAdmin
+                    ) {
                       saveAndExit(
                         nextClub,
                         "Removing yourself from club lead will revoke edit access. Continue?",
@@ -638,7 +642,11 @@ export default function EditClubPage() {
                               ),
                             };
 
-                            if (rank.level === 1 && isSelf && !isAdmin) {
+                            if (
+                              u.srn === actualUser.srn &&
+                              rank.level === 1 &&
+                              !isAdmin
+                            ) {
                               saveAndExit(
                                 nextClub,
                                 "Removing yourself from the top domain rank will revoke edit access. Continue?",
@@ -646,7 +654,6 @@ export default function EditClubPage() {
                               );
                               return;
                             }
-
                             setLocalClub(nextClub);
                             saveWith(nextClub);
                           }}
