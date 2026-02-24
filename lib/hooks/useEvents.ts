@@ -4,7 +4,7 @@ import { BaseEventData } from "@/lib/types/event";
 const EVENTS_KEY = "events";
 
 async function fetchEvents(): Promise<BaseEventData[]> {
-  const res = await fetch(`/api/events?t=${Date.now()}`);
+  const res = await fetch(`/api/events`);
   if (!res.ok) {
     throw new Error("Failed to fetch events");
   }

@@ -11,8 +11,7 @@ export type User = {
 } | null;
 
 async function fetchUser(): Promise<User> {
-  // Add timestamp to prevent caching
-  const res = await fetch(`/api/auth/me?t=${Date.now()}`);
+  const res = await fetch(`/api/auth/me`);
   if (!res.ok) {
     return null;
   }
@@ -24,13 +23,13 @@ export function useUser() {
   const pathname = usePathname();
 
   return useQuery({
-    queryKey: ["user", pathname], // Include pathname in query key
+    queryKey: ["user", pathname],
     queryFn: fetchUser,
     staleTime: 0,
     gcTime: 0,
     refetchOnMount: true,
-    refetchOnWindowFocus: false, // Disable window focus refetch
-    refetchOnReconnect: false, // Disable reconnect refetch
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     retry: false,
   });
 }
