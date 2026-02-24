@@ -210,14 +210,12 @@ export default function DashboardPage() {
 
       queryClient.clear();
 
+      toast.dismiss(toastId);
       window.location.href = "/";
-
-      toast.success("Logged out successfully", { id: toastId });
     } catch {
       toast.error("Failed to logout", { id: toastId });
     }
   };
-
   const confirmClubCreation = async (id: string) => {
     const toastId = toast.loading("Creating club...");
     try {

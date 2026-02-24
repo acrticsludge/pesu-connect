@@ -8,7 +8,6 @@ import { useUser } from "@/lib/hooks/useUser";
 export default function NavBar() {
   const { data: user, isLoading } = useUser();
   const router = useRouter();
-  console.log("NavBar rendering with user:", user);
   return (
     <header className="sticky top-0 z-50 w-full bg-black/30 backdrop-blur-xl shadow-[0_8px_24px_-10px_rgba(168,85,247,0.45)]">
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-linear-to-r from-transparent via-purple-500/70 to-transparent" />
@@ -40,7 +39,9 @@ export default function NavBar() {
               className="rounded-full px-3 sm:px-5 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white bg-purple-600/90 shadow-[0_0_20px_rgba(168,85,247,0.45)] hover:bg-purple-500 hover:shadow-[0_0_28px_rgba(168,85,247,0.7)] transition-all cursor-pointer active:scale-95"
             >
               Welcome,{" "}
-              <span className="text-purple-200">{user.name.split(" ")[0]}</span>
+              <span className="text-purple-200">
+                {user.name.split(" ")[0] ?? user.name}
+              </span>
             </button>
           ) : (
             <Link href="/login">

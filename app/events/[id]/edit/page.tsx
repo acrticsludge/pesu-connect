@@ -42,7 +42,7 @@ export default function EditEventPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
 
-  const { data: user } = useUser();
+  const { data: user, isLoading: userLoading } = useUser();
   const { data: clubs = [], isLoading: clubsLoading } = useClubs();
   const { data: event, isLoading: eventLoading } = useEvent(id);
   const updateEvent = useUpdateEvent(id);
@@ -74,7 +74,7 @@ export default function EditEventPage() {
     }
   }, [event]);
 
-  if (eventLoading || clubsLoading || !localEvent) {
+  if (eventLoading || clubsLoading || userLoading || !localEvent) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
         <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />

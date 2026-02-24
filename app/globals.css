@@ -106,11 +106,6 @@ html {
   max-width: 100%;
 }
 
-/* Target any potential horizontal scrollbars */
-* {
-  -webkit-overflow-scrolling: touch;
-}
-
 /* For the specific scroll containers */
 .overflow-x-auto {
   scrollbar-width: none;
