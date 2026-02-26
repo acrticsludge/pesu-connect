@@ -12,9 +12,23 @@ export type User = {
 
 async function fetchUser(): Promise<User> {
   const res = await fetch(`/api/auth/me`);
-  if (!res.ok) {
-    return null;
-  }
+  const fetchUser = async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      if (res.status === 401 || res.status === 403) {
+        return null;
+      }
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(
+          `Failed to fetch user: ${res.status} ${res.statusText} - ${body}`,
+        );
+      }
+      return res.json();
+    } catch (err) {
+      throw new Error(`Network or fetch error: ${err}`);
+    }
+  };
   const data = await res.json();
   return data.user || null;
 }
