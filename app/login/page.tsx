@@ -128,9 +128,18 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-6 text-center">
-          <p className="text-xs text-[#A3A3A3]">
-            Your password is not saved on the server side.
-          </p>
+            <p className="text-xs text-[#A3A3A3]">
+            Credentials are securely authenticated by{" "}
+            <a
+              href="https://github.com/pesu-dev/auth"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#7C3AED] hover:underline"
+            >
+              PESU Auth
+            </a>
+            . We only store your Name, SRN, and email. Your password is never stored on our servers.
+            </p>
         </div>
       </div>
     </div>

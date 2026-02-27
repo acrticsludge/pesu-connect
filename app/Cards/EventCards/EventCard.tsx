@@ -171,9 +171,6 @@ export default function EventCard({
         <div className="absolute top-2 right-2 sm:top-3 sm:right-3 z-20 flex flex-col gap-1.5 sm:gap-2 items-end">
           {regStatus && (
             <span className="relative inline-flex">
-              {regStatus.pulse && (
-                <span className="absolute inset-0 rounded-full bg-red-400/40 animate-ping" />
-              )}
               <span
                 className={`relative px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-semibold backdrop-blur whitespace-nowrap ${regStatus.color}`}
               >
