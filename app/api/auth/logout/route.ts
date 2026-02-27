@@ -10,10 +10,12 @@ export async function POST() {
     maxAge: 0,
     path: "/",
   });
+  response.headers.set("Cache-Control", "no-store, max-age=0");
+  response.headers.set("CDN-Cache-Control", "no-store");
+  response.headers.set("Vercel-CDN-Cache-Control", "no-store");
   return response;
 }
 
-// Add this GET endpoint to check cookie status
 export async function GET() {
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token");

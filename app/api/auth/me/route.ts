@@ -4,16 +4,33 @@ import { verifyToken } from "@/lib/auth";
 import { connectDB } from "@/lib/db";
 import User from "@/lib/models/User";
 
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 export async function GET() {
   try {
     const token = (await cookies()).get("auth_token")?.value;
     if (!token) {
-      return NextResponse.json({ user: null });
+      return NextResponse.json(
+        { user: null },
+        {
+          headers: {
+            "Cache-Control": "no-store, max-age=0",
+          },
+        },
+      );
     }
 
     const payload = verifyToken(token);
     if (!payload?.sub) {
-      return NextResponse.json({ user: null });
+      return NextResponse.json(
+        { user: null },
+        {
+          headers: {
+            "Cache-Control": "no-store, max-age=0",
+          },
+        },
+      );
     }
 
     await connectDB();
@@ -21,7 +38,14 @@ export async function GET() {
     const user = await User.findById(payload.sub).lean();
 
     if (!user) {
-      return NextResponse.json({ user: null });
+      return NextResponse.json(
+        { user: null },
+        {
+          headers: {
+            "Cache-Control": "no-store, max-age=0",
+          },
+        },
+      );
     }
 
     return NextResponse.json(
@@ -37,12 +61,19 @@ export async function GET() {
       },
       {
         headers: {
-          "Cache-Control": "private, max-age=60",
+          "Cache-Control": "no-store, max-age=0",
         },
       },
     );
   } catch (error) {
     console.error("Auth error:", error);
-    return NextResponse.json({ user: null });
+    return NextResponse.json(
+      { user: null },
+      {
+        headers: {
+          "Cache-Control": "no-store, max-age=0",
+        },
+      },
+    );
   }
 }

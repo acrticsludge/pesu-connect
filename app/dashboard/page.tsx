@@ -209,6 +209,8 @@ export default function DashboardPage() {
       await fetch("/api/auth/logout", { method: "POST" });
 
       queryClient.clear();
+      localStorage.clear();
+      sessionStorage.clear();
 
       toast.dismiss(toastId);
       window.location.href = "/";
