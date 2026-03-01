@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import AnnouncementCard from "../Cards/AnnouncementCards/AnnouncementCard";
 import CreateAnnouncementModal from "../Cards/AnnouncementCards/createAnnouncementModal";
+import RequestDetailModal from "../Cards/RequestDetailModal";
 import { useUser } from "@/lib/hooks/useUser";
 import { useClubs } from "@/lib/hooks/useClubs";
 import { useAnnouncements } from "@/lib/hooks/useAnnouncements";
@@ -141,6 +142,14 @@ export default function DashboardPage() {
   const [clubLogs, setClubLogs] = useState<ClubRequest[]>([]);
   const [eventLogs, setEventLogs] = useState<EventRequest[]>([]);
 
+  // Modal state for request details
+  const [selectedRequest, setSelectedRequest] = useState<
+    ClubRequest | EventRequest | null
+  >(null);
+  const [modalType, setModalType] = useState<"club" | "event">("club");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoadingModal, setIsLoadingModal] = useState(false);
+
   useEffect(() => {
     if (user?.role === "admin") {
       const pendingClubs = clubRequests.filter(
@@ -230,8 +239,55 @@ export default function DashboardPage() {
         return;
       }
       toast.success("Club created successfully!", { id: toastId });
+      setIsModalOpen(false);
+      setSelectedRequest(null);
     } catch {
       toast.error("Network error", { id: toastId });
+    }
+  };
+
+  // Modal handlers
+  const openRequestModal = (
+    request: ClubRequest | EventRequest,
+    type: "club" | "event",
+  ) => {
+    setSelectedRequest(request);
+    setModalType(type);
+    setIsModalOpen(true);
+  };
+
+  const closeRequestModal = () => {
+    setIsModalOpen(false);
+    setSelectedRequest(null);
+  };
+
+  const handleModalApprove = async (id: string) => {
+    setIsLoadingModal(true);
+    try {
+      if (modalType === "club") {
+        await handleAdminClubAction(id, "approve");
+      } else {
+        await handleAdminEventAction(id, "approve");
+      }
+      setIsModalOpen(false);
+      setSelectedRequest(null);
+    } finally {
+      setIsLoadingModal(false);
+    }
+  };
+
+  const handleModalReject = async (id: string) => {
+    setIsLoadingModal(true);
+    try {
+      if (modalType === "club") {
+        await handleAdminClubAction(id, "reject");
+      } else {
+        await handleAdminEventAction(id, "reject");
+      }
+      setIsModalOpen(false);
+      setSelectedRequest(null);
+    } finally {
+      setIsLoadingModal(false);
     }
   };
 
@@ -660,9 +716,10 @@ export default function DashboardPage() {
                 ) : (
                   <div className="space-y-3 sm:space-y-4">
                     {adminClubRequests.map((req) => (
-                      <div
+                      <button
                         key={req._id}
-                        className="p-3 sm:p-4 rounded-xl bg-white/5 border border-yellow-500/30"
+                        onClick={() => openRequestModal(req, "club")}
+                        className="w-full text-left p-3 sm:p-4 rounded-xl bg-white/5 border border-yellow-500/30 hover:bg-yellow-500/5 transition active:scale-[0.98]"
                       >
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-3">
                           <div className="flex-1 min-w-0">
@@ -678,29 +735,14 @@ export default function DashboardPage() {
                               <span>{formatDate(req.createdAt)}</span>
                             </div>
                           </div>
-                          <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs bg-yellow-500/20 text-yellow-300 w-fit">
+                          <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs bg-yellow-500/20 text-yellow-300 w-fit flex-shrink-0">
                             Pending
                           </span>
                         </div>
-                        <div className="flex gap-1.5 sm:gap-2 mt-3 sm:mt-4">
-                          <button
-                            onClick={() =>
-                              handleAdminClubAction(req._id, "approve")
-                            }
-                            className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-green-600 text-white text-xs sm:text-sm hover:bg-green-700 transition active:scale-95"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() =>
-                              handleAdminClubAction(req._id, "reject")
-                            }
-                            className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-red-600 text-white text-xs sm:text-sm hover:bg-red-700 transition active:scale-95"
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      </div>
+                        <p className="text-[10px] sm:text-xs text-purple-400 mt-2 sm:mt-3 font-medium">
+                          Click for more info
+                        </p>
+                      </button>
                     ))}
                   </div>
                 )}
@@ -717,9 +759,10 @@ export default function DashboardPage() {
                 ) : (
                   <div className="space-y-3 sm:space-y-4">
                     {adminEventRequests.map((req) => (
-                      <div
+                      <button
                         key={req._id}
-                        className="p-3 sm:p-4 rounded-xl bg-white/5 border border-yellow-500/30"
+                        onClick={() => openRequestModal(req, "event")}
+                        className="w-full text-left p-3 sm:p-4 rounded-xl bg-white/5 border border-yellow-500/30 hover:bg-yellow-500/5 transition active:scale-[0.98]"
                       >
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-3">
                           <div className="flex-1 min-w-0">
@@ -735,29 +778,14 @@ export default function DashboardPage() {
                               <span>{formatDate(req.createdAt)}</span>
                             </div>
                           </div>
-                          <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs bg-yellow-500/20 text-yellow-300 w-fit">
+                          <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs bg-yellow-500/20 text-yellow-300 w-fit flex-shrink-0">
                             Pending
                           </span>
                         </div>
-                        <div className="flex gap-1.5 sm:gap-2 mt-3 sm:mt-4">
-                          <button
-                            onClick={() =>
-                              handleAdminEventAction(req._id, "approve")
-                            }
-                            className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-green-600 text-white text-xs sm:text-sm hover:bg-green-700 transition active:scale-95"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() =>
-                              handleAdminEventAction(req._id, "reject")
-                            }
-                            className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-red-600 text-white text-xs sm:text-sm hover:bg-red-700 transition active:scale-95"
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      </div>
+                        <p className="text-[10px] sm:text-xs text-purple-400 mt-2 sm:mt-3 font-medium">
+                          Click for more info
+                        </p>
+                      </button>
                     ))}
                   </div>
                 )}
@@ -776,9 +804,10 @@ export default function DashboardPage() {
                 ) : (
                   <div className="space-y-3 sm:space-y-4">
                     {clubRequests.map((req: ClubRequest) => (
-                      <div
+                      <button
                         key={req._id}
-                        className="p-3 sm:p-4 rounded-xl bg-white/5 border border-white/10"
+                        onClick={() => openRequestModal(req, "club")}
+                        className="w-full text-left p-3 sm:p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition active:scale-[0.98]"
                       >
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-3">
                           <div className="flex-1 min-w-0">
@@ -793,7 +822,7 @@ export default function DashboardPage() {
                             </p>
                           </div>
                           <span
-                            className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs w-fit ${
+                            className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs w-fit flex-shrink-0 ${
                               req.status === "approved"
                                 ? "bg-green-500/20 text-green-300"
                                 : req.status === "rejected"
@@ -806,22 +835,10 @@ export default function DashboardPage() {
                             {req.status}
                           </span>
                         </div>
-                        {req.status === "approved" && (
-                          <button
-                            onClick={() => confirmClubCreation(req._id)}
-                            className="mt-3 sm:mt-4 w-full sm:w-auto px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-[#7C3AED] text-white text-xs sm:text-sm hover:bg-[#6D28D9] transition active:scale-95"
-                          >
-                            Confirm Creation
-                          </button>
-                        )}
-                        {req.status === "rejected" && req.adminRemark && (
-                          <div className="mt-2 sm:mt-3 p-2 sm:p-3 rounded-lg bg-red-500/10 border border-red-500/30">
-                            <p className="text-[10px] sm:text-xs text-red-400">
-                              Reason: {req.adminRemark}
-                            </p>
-                          </div>
-                        )}
-                      </div>
+                        <p className="text-[10px] sm:text-xs text-purple-400 mt-2 sm:mt-3 font-medium">
+                          Click for more info
+                        </p>
+                      </button>
                     ))}
                   </div>
                 )}
@@ -838,9 +855,10 @@ export default function DashboardPage() {
                 ) : (
                   <div className="space-y-3 sm:space-y-4">
                     {eventRequests.map((req: EventRequest) => (
-                      <div
+                      <button
                         key={req._id}
-                        className="p-3 sm:p-4 rounded-xl bg-white/5 border border-white/10"
+                        onClick={() => openRequestModal(req, "event")}
+                        className="w-full text-left p-3 sm:p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition active:scale-[0.98]"
                       >
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-3">
                           <div className="flex-1 min-w-0">
@@ -855,7 +873,7 @@ export default function DashboardPage() {
                             </p>
                           </div>
                           <span
-                            className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs w-fit ${
+                            className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs w-fit flex-shrink-0 ${
                               req.status === "approved"
                                 ? "bg-green-500/20 text-green-300"
                                 : req.status === "rejected"
@@ -868,14 +886,10 @@ export default function DashboardPage() {
                             {req.status}
                           </span>
                         </div>
-                        {req.status === "rejected" && req.adminRemark && (
-                          <div className="mt-2 sm:mt-3 p-2 sm:p-3 rounded-lg bg-red-500/10 border border-red-500/30">
-                            <p className="text-[10px] sm:text-xs text-red-400">
-                              Reason: {req.adminRemark}
-                            </p>
-                          </div>
-                        )}
-                      </div>
+                        <p className="text-[10px] sm:text-xs text-purple-400 mt-2 sm:mt-3 font-medium">
+                          Click for more info
+                        </p>
+                      </button>
                     ))}
                   </div>
                 )}
@@ -898,9 +912,10 @@ export default function DashboardPage() {
             ) : (
               <div className="space-y-3 sm:space-y-4">
                 {clubLogs.map((req) => (
-                  <div
+                  <button
                     key={req._id}
-                    className="p-3 sm:p-4 rounded-xl bg-white/5 border border-white/10"
+                    onClick={() => openRequestModal(req, "club")}
+                    className="w-full text-left p-3 sm:p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition active:scale-[0.98]"
                   >
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-3">
                       <div className="flex-1 min-w-0">
@@ -931,7 +946,7 @@ export default function DashboardPage() {
                         )}
                       </div>
                       <span
-                        className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs w-fit ${
+                        className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs w-fit flex-shrink-0 ${
                           req.status === "approved"
                             ? "bg-green-500/20 text-green-300"
                             : req.status === "rejected"
@@ -944,7 +959,10 @@ export default function DashboardPage() {
                         {req.status}
                       </span>
                     </div>
-                  </div>
+                    <p className="text-[10px] sm:text-xs text-purple-400 mt-2 sm:mt-3 font-medium">
+                      Click for more info
+                    </p>
+                  </button>
                 ))}
               </div>
             )}
@@ -960,9 +978,10 @@ export default function DashboardPage() {
             ) : (
               <div className="space-y-3 sm:space-y-4">
                 {eventLogs.map((req: EventRequest) => (
-                  <div
+                  <button
                     key={req._id}
-                    className="p-3 sm:p-4 rounded-xl bg-white/5 border border-white/10"
+                    onClick={() => openRequestModal(req, "event")}
+                    className="w-full text-left p-3 sm:p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition active:scale-[0.98]"
                   >
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-3">
                       <div className="flex-1 min-w-0">
@@ -993,7 +1012,7 @@ export default function DashboardPage() {
                         )}
                       </div>
                       <span
-                        className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs w-fit ${
+                        className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs w-fit flex-shrink-0 ${
                           req.status === "approved"
                             ? "bg-green-500/20 text-green-300"
                             : req.status === "rejected"
@@ -1006,7 +1025,10 @@ export default function DashboardPage() {
                         {req.status}
                       </span>
                     </div>
-                  </div>
+                    <p className="text-[10px] sm:text-xs text-purple-400 mt-2 sm:mt-3 font-medium">
+                      Click for more info
+                    </p>
+                  </button>
                 ))}
               </div>
             )}
@@ -1193,6 +1215,20 @@ export default function DashboardPage() {
           )}
         </section>
       )}
+
+      {/* Request Detail Modal */}
+      <RequestDetailModal
+        isOpen={isModalOpen}
+        request={selectedRequest}
+        type={modalType}
+        onClose={closeRequestModal}
+        isAdmin={user?.role === "admin"}
+        onApprove={handleModalApprove}
+        onReject={handleModalReject}
+        onConfirm={confirmClubCreation}
+        isLoading={isLoadingModal}
+        formatDate={formatDate}
+      />
     </div>
   );
 }
