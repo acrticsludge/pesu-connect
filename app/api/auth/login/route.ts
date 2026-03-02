@@ -6,23 +6,62 @@ import { signToken } from "@/lib/auth";
 import { RateLimiter } from "@/lib/rateLimiter";
 
 const rateLimiter = new RateLimiter({
-  windowMs: 60 * 60 * 1000, // 1 hour
+  windowMs: 60 * 60 * 1000,
   maxRequests: 5,
 });
 
+function validateSecureConnection(req: Request): string | null {
+  const protocol = req.headers.get("x-forwarded-proto") || "http";
+  if (process.env.NODE_ENV === "production" && protocol !== "https") {
+    return "HTTPS is required for this operation";
+  }
+  return null;
+}
+
+function getClientIP(req: Request): string {
+  const forwardedFor = req.headers.get("x-forwarded-for");
+  if (forwardedFor) {
+    const ips = forwardedFor.split(",").map((ip) => ip.trim());
+    const firstIP = ips[0];
+    if (/^[\d.]+$/.test(firstIP) || /^[\da-f:]+$/i.test(firstIP)) {
+      return firstIP;
+    }
+  }
+  return req.headers.get("cf-connecting-ip") || "unknown";
+}
+
+function validatePassword(password: string): string | null {
+  if (!password || password.length < 1) {
+    return "Invalid credentials";
+  }
+  if (password.length > 500) {
+    return "Invalid credentials";
+  }
+  return null;
+}
+
 export async function POST(req: Request) {
   try {
+    const securityError = validateSecureConnection(req);
+    if (securityError) {
+      return NextResponse.json({ error: securityError }, { status: 403 });
+    }
+
     const { srn, password } = await req.json();
 
     if (!srn || !password) {
       return NextResponse.json(
-        { error: "SRN and password are required" },
-        { status: 400 },
+        { error: "Invalid credentials" },
+        { status: 401 },
       );
     }
 
-    const forwardedFor = req.headers.get("x-forwarded-for");
-    const ip = forwardedFor ? forwardedFor.split(",")[0].trim() : "unknown";
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      return NextResponse.json({ error: passwordError }, { status: 401 });
+    }
+
+    const ip = getClientIP(req);
 
     const rateLimitResult = await rateLimiter.check(`login:${ip}`);
     if (!rateLimitResult.allowed) {
@@ -39,25 +78,34 @@ export async function POST(req: Request) {
       );
     }
 
-    const pesuRes = await fetch("https://pesu-auth.onrender.com/authenticate", {
-      method: "POST",
-      headers: {
-        accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        username: srn,
-        password,
-        profile: true,
-        fields: ["name", "email", "srn"],
-      }),
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
+    let pesuRes;
+    try {
+      pesuRes = await fetch("https://pesu-auth.onrender.com/authenticate", {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: srn,
+          password,
+          profile: true,
+          fields: ["name", "email", "srn"],
+        }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
 
     const data = await pesuRes.json();
 
     if (!pesuRes.ok || !data.status) {
       return NextResponse.json(
-        { error: "Invalid SRN or password" },
+        { error: "Invalid credentials" },
         { status: 401 },
       );
     }
@@ -97,6 +145,7 @@ export async function POST(req: Request) {
     return res;
   } catch (error) {
     console.error("Login error:", error);
+
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
