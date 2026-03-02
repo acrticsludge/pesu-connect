@@ -13,6 +13,7 @@ import { useAnnouncements } from "@/lib/hooks/useAnnouncements";
 import { useUserClubs } from "@/lib/hooks/useUserClubs";
 import { useClubRequests } from "@/lib/hooks/useClubRequests";
 import { useEventRequests } from "@/lib/hooks/useEventRequests";
+import { useClubEvents } from "@/lib/hooks/useClubEvents";
 import { useProfilePicture } from "@/lib/hooks/useProfilePicture";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -119,8 +120,9 @@ export default function DashboardPage() {
     user?.role === "admin" ? "admin" : "user",
   );
   const { data: eventRequests = [] } = useEventRequests(
-    user?.role === "admin" ? "admin" : "user",
+    user?.role === "admin" ? "admin" : undefined,
   );
+  const { data: clubEvents = [] } = useClubEvents();
 
   const { refetch } = useUser();
 
@@ -489,7 +491,7 @@ export default function DashboardPage() {
           <div className="text-sm sm:text-base md:text-xl font-bold text-white mt-0.5 sm:mt-1">
             {user.role === "admin"
               ? `${adminClubRequests.length + adminEventRequests.length} Pending`
-              : `${clubRequests.length + eventRequests.length} Total`}
+              : `${clubRequests.length} Total`}
           </div>
         </button>
 
@@ -751,49 +753,6 @@ export default function DashboardPage() {
                   </div>
                 )}
               </section>
-
-              <section className="rounded-xl sm:rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-5 md:p-6">
-                <h2 className="text-base sm:text-lg font-bold text-white mb-3 sm:mb-4">
-                  Pending Event Requests
-                </h2>
-                {adminEventRequests.length === 0 ? (
-                  <p className="text-sm sm:text-base text-white/60 text-center py-3 sm:py-4">
-                    No pending event requests
-                  </p>
-                ) : (
-                  <div className="space-y-3 sm:space-y-4">
-                    {adminEventRequests.map((req) => (
-                      <button
-                        key={req._id}
-                        onClick={() => openRequestModal(req, "event")}
-                        className="w-full text-left p-3 sm:p-4 rounded-xl bg-white/5 border border-yellow-500/30 hover:bg-yellow-500/5 transition active:scale-[0.98]"
-                      >
-                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-3">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-sm sm:text-base font-semibold text-white">
-                              {req.eventData.name}
-                            </h3>
-                            <p className="text-xs sm:text-sm text-white/60 mt-0.5 sm:mt-1 line-clamp-2">
-                              {req.eventData.shortDescription}
-                            </p>
-                            <div className="flex flex-wrap gap-2 sm:gap-3 mt-1.5 sm:mt-2 text-[10px] sm:text-xs text-white/40">
-                              <span>By: {req.requestedBy.name}</span>
-                              <span>SRN: {req.requestedBy.srn}</span>
-                              <span>{formatDate(req.createdAt)}</span>
-                            </div>
-                          </div>
-                          <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs bg-yellow-500/20 text-yellow-300 w-fit flex-shrink-0">
-                            Pending
-                          </span>
-                        </div>
-                        <p className="text-[10px] sm:text-xs text-purple-400 mt-2 sm:mt-3 font-medium">
-                          Click for more info
-                        </p>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </section>
             </>
           ) : (
             <>
@@ -850,50 +809,53 @@ export default function DashboardPage() {
 
               <section className="rounded-xl sm:rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-5 md:p-6">
                 <h2 className="text-base sm:text-lg font-bold text-white mb-3 sm:mb-4">
-                  My Event Requests
+                  My Clubs Events
                 </h2>
-                {eventRequests.length === 0 ? (
+                {clubEvents.length === 0 ? (
                   <p className="text-sm sm:text-base text-white/60 text-center py-3 sm:py-4">
-                    No event requests found
+                    No events found for your clubs
                   </p>
                 ) : (
                   <div className="space-y-3 sm:space-y-4">
-                    {eventRequests.map((req: EventRequest) => (
-                      <button
-                        key={req._id}
-                        onClick={() => openRequestModal(req, "event")}
-                        className="w-full text-left p-3 sm:p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition active:scale-[0.98]"
+                    {clubEvents.map((event: any) => (
+                      <Link
+                        key={event._id}
+                        href={`/events/${event._id}`}
+                        className="w-full text-left p-3 sm:p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition active:scale-[0.98] block"
                       >
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-3">
                           <div className="flex-1 min-w-0">
                             <h3 className="text-sm sm:text-base font-semibold text-white">
-                              {req.eventData.name}
+                              {event.name}
                             </h3>
                             <p className="text-xs sm:text-sm text-white/60 mt-0.5 sm:mt-1 line-clamp-2">
-                              {req.eventData.shortDescription}
+                              {event.shortDescription}
                             </p>
-                            <p className="text-[10px] sm:text-xs text-white/40 mt-1.5 sm:mt-2">
-                              {formatDate(req.createdAt)}
-                            </p>
+                            <div className="flex flex-wrap gap-2 sm:gap-3 mt-1.5 sm:mt-2 text-[10px] sm:text-xs text-white/40">
+                              <span>
+                                {new Date(event.startDate).toLocaleDateString(
+                                  "en-IN",
+                                )}
+                              </span>
+                              <span>{event.venue}</span>
+                              <span>{event.campus}</span>
+                            </div>
                           </div>
-                          <span
-                            className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs w-fit flex-shrink-0 ${
-                              req.status === "approved"
-                                ? "bg-green-500/20 text-green-300"
-                                : req.status === "rejected"
-                                  ? "bg-red-500/20 text-red-300"
-                                  : req.status === "completed"
-                                    ? "bg-blue-500/20 text-blue-300"
-                                    : "bg-yellow-500/20 text-yellow-300"
-                            }`}
-                          >
-                            {req.status}
-                          </span>
+                          <div className="flex flex-col gap-1">
+                            {event.categories &&
+                              event.categories.length > 0 && (
+                                <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs bg-blue-500/20 text-blue-300 w-fit">
+                                  {event.categories[0]}
+                                </span>
+                              )}
+                            {event.tags && event.tags.length > 0 && (
+                              <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs bg-purple-500/20 text-purple-300 w-fit">
+                                {event.tags[0]}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <p className="text-[10px] sm:text-xs text-purple-400 mt-2 sm:mt-3 font-medium">
-                          Click for more info
-                        </p>
-                      </button>
+                      </Link>
                     ))}
                   </div>
                 )}
@@ -928,72 +890,6 @@ export default function DashboardPage() {
                         </h3>
                         <p className="text-xs sm:text-sm text-white/60 mt-0.5 sm:mt-1 line-clamp-2">
                           {req.clubData.shortDescription}
-                        </p>
-                        <div className="flex flex-wrap gap-2 sm:gap-3 mt-1.5 sm:mt-2 text-[10px] sm:text-xs text-white/40">
-                          <span>By: {req.requestedBy.name}</span>
-                          <span>SRN: {req.requestedBy.srn}</span>
-                          <span>Email: {req.requestedBy.email}</span>
-                        </div>
-                        <div className="flex flex-wrap gap-2 sm:gap-3 mt-1 text-[10px] sm:text-xs text-white/40">
-                          <span>Requested: {formatDate(req.createdAt)}</span>
-                          <span>Updated: {formatDate(req.updatedAt)}</span>
-                        </div>
-                        {req.handledBy && (
-                          <p className="text-[10px] sm:text-xs text-purple-400 mt-1.5 sm:mt-2">
-                            Handled by: {req.handledBy.name}
-                          </p>
-                        )}
-                        {req.adminRemark && (
-                          <p className="text-[10px] sm:text-xs text-white/40 mt-0.5 sm:mt-1">
-                            Remark: {req.adminRemark}
-                          </p>
-                        )}
-                      </div>
-                      <span
-                        className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs w-fit flex-shrink-0 ${
-                          req.status === "approved"
-                            ? "bg-green-500/20 text-green-300"
-                            : req.status === "rejected"
-                              ? "bg-red-500/20 text-red-300"
-                              : req.status === "completed"
-                                ? "bg-blue-500/20 text-blue-300"
-                                : "bg-yellow-500/20 text-yellow-300"
-                        }`}
-                      >
-                        {req.status}
-                      </span>
-                    </div>
-                    <p className="text-[10px] sm:text-xs text-purple-400 mt-2 sm:mt-3 font-medium">
-                      Click for more info
-                    </p>
-                  </button>
-                ))}
-              </div>
-            )}
-          </section>
-          <section className="rounded-xl sm:rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-5 md:p-6">
-            <h2 className="text-base sm:text-lg font-bold text-white mb-3 sm:mb-4">
-              Event Request History
-            </h2>
-            {eventLogs.length === 0 ? (
-              <p className="text-sm sm:text-base text-white/60 text-center py-3 sm:py-4">
-                No event request history
-              </p>
-            ) : (
-              <div className="space-y-3 sm:space-y-4">
-                {eventLogs.map((req: EventRequest) => (
-                  <button
-                    key={req._id}
-                    onClick={() => openRequestModal(req, "event")}
-                    className="w-full text-left p-3 sm:p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition active:scale-[0.98]"
-                  >
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-3">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-sm sm:text-base font-semibold text-white">
-                          {req.eventData.name}
-                        </h3>
-                        <p className="text-xs sm:text-sm text-white/60 mt-0.5 sm:mt-1 line-clamp-2">
-                          {req.eventData.shortDescription}
                         </p>
                         <div className="flex flex-wrap gap-2 sm:gap-3 mt-1.5 sm:mt-2 text-[10px] sm:text-xs text-white/40">
                           <span>By: {req.requestedBy.name}</span>

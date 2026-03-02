@@ -76,7 +76,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { registration, startDate, endDate, name } = body;
+    const { registration, startDate, endDate, name, involvedClubs } = body;
 
     if (!name?.trim()) {
       return NextResponse.json(
@@ -98,6 +98,46 @@ export async function POST(req: Request) {
         { error: "Event with similar name and date already exists" },
         { status: 409 },
       );
+    }
+
+    // Validate involvedClubs if provided
+    if (involvedClubs && involvedClubs.length > 0) {
+      const resolvedInvolvedClubs = await Promise.all(
+        involvedClubs.map(async (ic: any) => {
+          const club = await Club.findById(ic.club);
+          if (!club) throw new Error("Club not found");
+
+          const isHead = club.ranks?.some(
+            (rank: any) =>
+              rank.level === 1 &&
+              rank.users?.some((u: any) => u.srn === user.srn),
+          );
+
+          if (!isHead) {
+            throw new Error(`Not authorized for ${club.name}`);
+          }
+
+          if (!ic.domains || ic.domains.length === 0) {
+            throw new Error(`At least one domain required for ${club.name}`);
+          }
+
+          // Validate that all domain names exist in the club
+          const validDomains = ic.domains.every((domainName: string) =>
+            club.domains.some((d: any) => d.name === domainName),
+          );
+
+          if (!validDomains) {
+            throw new Error(`Invalid domains selected for ${club.name}`);
+          }
+
+          return {
+            club: ic.club,
+            domains: ic.domains,
+          };
+        }),
+      );
+
+      body.involvedClubs = resolvedInvolvedClubs;
     }
 
     const event = await Event.create({

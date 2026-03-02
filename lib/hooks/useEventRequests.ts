@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 
-async function fetchEventRequests(role: string) {
+async function fetchEventRequests(role: string | undefined) {
+  if (!role) return [];
+
   const endpoint =
     role === "admin" ? "/api/admin/events/requests" : "/api/events/requests/me";
 
@@ -10,7 +12,7 @@ async function fetchEventRequests(role: string) {
   return data.requests || [];
 }
 
-export function useEventRequests(role: string) {
+export function useEventRequests(role: string | undefined) {
   return useQuery({
     queryKey: ["event-requests", role],
     queryFn: () => fetchEventRequests(role),
@@ -18,5 +20,6 @@ export function useEventRequests(role: string) {
     gcTime: 0,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
+    enabled: !!role,
   });
 }

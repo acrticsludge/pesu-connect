@@ -24,14 +24,10 @@ export function useEventPermissions(event: any, user: any) {
 
           if (!club) continue;
 
-          const maxLevel = Math.max(
-            ...(club.ranks?.map((r: any) => r.level) || [0]),
-          );
-          const topRanks =
-            club.ranks?.filter((r: any) => r.level === maxLevel) || [];
-
-          const isHead = topRanks.some((rank: any) =>
-            rank.users?.some((u: any) => u.srn === user.srn),
+          const isHead = club.ranks?.some(
+            (rank: any) =>
+              rank.level === 1 &&
+              rank.users?.some((u: any) => u.srn === user.srn),
           );
 
           if (isHead) {

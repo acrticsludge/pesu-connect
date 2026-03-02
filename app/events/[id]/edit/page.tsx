@@ -83,8 +83,22 @@ export default function EditEventPage() {
   }
 
   const isAdmin = user?.role === "admin";
+  const isClubLead =
+    !isAdmin &&
+    event?.involvedClubs?.some((ic: any) => {
+      const clubId = typeof ic.club === "object" ? ic.club._id : ic.club;
+      return clubs.some(
+        (club: any) =>
+          club._id === clubId &&
+          club.ranks?.some(
+            (rank: any) =>
+              rank.level === 1 &&
+              rank.users?.some((u: any) => u.srn === user?.srn),
+          ),
+      );
+    });
 
-  if (!isAdmin) {
+  if (!isAdmin && !isClubLead) {
     return (
       <div className="py-24 text-center text-red-400">
         You do not have permission to edit this event.

@@ -164,9 +164,7 @@ export default function NewEventPage() {
       <div className="space-y-2">
         <h1 className="text-2xl sm:text-3xl font-bold">Create Event</h1>
         <p className="text-sm text-white/60">
-          {isAdmin
-            ? "Fill in the details below to create a new event."
-            : "Fill in the details below to request a new event. It will be reviewed by an admin."}
+          Fill in the details below to create a new event.
         </p>
       </div>
 
@@ -509,11 +507,7 @@ export default function NewEventPage() {
         disabled={createEvent.isPending}
         className="w-full mt-6 px-6 py-3 rounded-xl bg-[#7C3AED] text-white font-semibold hover:bg-[#6D28D9] transition disabled:opacity-50 active:scale-[0.98] text-sm sm:text-base"
       >
-        {createEvent.isPending
-          ? "Submitting..."
-          : isAdmin
-            ? "Create Event"
-            : "Send for Approval"}
+        {createEvent.isPending ? "Creating..." : "Create Event"}
       </button>
     </div>
   );
