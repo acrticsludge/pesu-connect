@@ -1,6 +1,7 @@
 "use client";
 
 import { useParams, notFound } from "next/navigation";
+import { useState } from "react";
 import Image from "next/image";
 import { Club, ClubDomain, ClubRank, DomainRank } from "@/lib/types/club";
 import Link from "next/link";
@@ -17,6 +18,7 @@ function slugify(text: string) {
 
 export default function ClubPage() {
   const { id } = useParams<{ id: string }>();
+  const [expandedRanks, setExpandedRanks] = useState<Set<string>>(new Set());
 
   const { data: user } = useUser();
   const { data: club, isLoading: clubLoading } = useClub(id);
@@ -25,6 +27,18 @@ export default function ClubPage() {
     user,
     club,
   );
+
+  const toggleRankExpand = (rankKey: string) => {
+    setExpandedRanks((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(rankKey)) {
+        newSet.delete(rankKey);
+      } else {
+        newSet.add(rankKey);
+      }
+      return newSet;
+    });
+  };
 
   if (clubLoading || permissionsLoading) {
     return (
@@ -117,7 +131,7 @@ export default function ClubPage() {
                   About
                 </h2>
                 <div
-                  className="prose prose-invert max-w-none text-xs sm:text-sm md:text-base break-words overflow-x-hidden [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:my-4"
+                  className="prose prose-invert max-w-none text-xs sm:text-sm md:text-base wrap-break-word overflow-x-hidden [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:my-4"
                   dangerouslySetInnerHTML={{
                     __html: club.fullDescription,
                   }}
@@ -208,65 +222,107 @@ export default function ClubPage() {
                 Team Structure
               </h2>
 
-              <div className="space-y-4 sm:space-y-5">
+              <div className="space-y-5 sm:space-y-6">
                 {ranks.length > 0 && (
                   <div>
-                    <h3 className="text-xs sm:text-sm font-semibold text-purple-300 mb-2">
+                    <h3 className="text-xs sm:text-sm font-semibold text-purple-300 mb-3">
                       Club Leadership
                     </h3>
 
-                    <div className="space-y-1">
+                    <div className="space-y-3">
                       {ranks
                         .filter(
                           (r: ClubRank) =>
                             maxLevel !== null && r.level < maxLevel,
                         )
                         .sort((a: ClubRank, b: ClubRank) => a.level - b.level)
-                        .flatMap((rank: ClubRank) =>
-                          (rank.users ?? []).map((u) => (
-                            <div
-                              key={`${rank.level}-${u.srn}`}
-                              className="flex flex-wrap justify-between gap-2 text-xs sm:text-sm"
-                            >
-                              <span className="text-white truncate max-w-37.5 sm:max-w-50">
-                                {userMap[u.srn] ?? u.srn}
-                              </span>
-                              <span className="text-[#A3A3A3] shrink-0">
+                        .map((rank: ClubRank) => {
+                          const users = rank.users ?? [];
+                          const rankKey = `leadership-${rank.level}`;
+                          const isExpanded = expandedRanks.has(rankKey);
+                          const displayUsers = isExpanded
+                            ? users
+                            : users.slice(0, 3);
+
+                          return (
+                            <div key={`${rank.level}-group`}>
+                              <h4 className="text-xs sm:text-sm text-[#A3A3A3] font-medium mb-2">
                                 {rank.name}
-                              </span>
+                              </h4>
+                              <div className="space-y-1">
+                                {displayUsers.map((u) => (
+                                  <div
+                                    key={`${rank.level}-${u.srn}`}
+                                    className="text-xs sm:text-sm text-white truncate"
+                                  >
+                                    {userMap[u.srn] ?? u.srn}
+                                  </div>
+                                ))}
+                              </div>
+                              {users.length > 3 && (
+                                <button
+                                  onClick={() => toggleRankExpand(rankKey)}
+                                  className="text-xs sm:text-sm text-purple-400 hover:text-purple-300 mt-2 transition"
+                                >
+                                  {isExpanded
+                                    ? "Show less"
+                                    : `+${users.length - 3} more`}
+                                </button>
+                              )}
                             </div>
-                          )),
-                        )}
+                          );
+                        })}
                     </div>
                   </div>
                 )}
 
                 {(club.domains ?? []).map((domain: ClubDomain) => (
                   <div key={domain.name}>
-                    <h3 className="text-xs sm:text-sm font-semibold text-purple-300 mb-2">
+                    <h3 className="text-xs sm:text-sm font-semibold text-purple-300 mb-3">
                       {domain.name}
                     </h3>
 
-                    <div className="space-y-1 ml-1 sm:ml-2">
+                    <div className="space-y-3">
                       {(domain.ranks ?? [])
                         .sort(
                           (a: DomainRank, b: DomainRank) => a.level - b.level,
                         )
-                        .flatMap((rank: DomainRank) =>
-                          (rank.users ?? []).map((u) => (
-                            <div
-                              key={`${rank.name}-${u.srn}`}
-                              className="flex flex-wrap justify-between gap-2 text-xs sm:text-sm"
-                            >
-                              <span className="text-white truncate max-w-37.5 sm:max-w-50">
-                                {userMap[u.srn] ?? u.srn}
-                              </span>
-                              <span className="text-[#A3A3A3] shrink-0">
+                        .map((rank: DomainRank) => {
+                          const users = rank.users ?? [];
+                          const rankKey = `${domain.name}-${rank.name}`;
+                          const isExpanded = expandedRanks.has(rankKey);
+                          const displayUsers = isExpanded
+                            ? users
+                            : users.slice(0, 3);
+
+                          return (
+                            <div key={rankKey}>
+                              <h4 className="text-xs sm:text-sm text-[#A3A3A3] font-medium mb-2">
                                 {rank.name}
-                              </span>
+                              </h4>
+                              <div className="space-y-1">
+                                {displayUsers.map((u) => (
+                                  <div
+                                    key={`${rank.name}-${u.srn}`}
+                                    className="text-xs sm:text-sm text-white truncate"
+                                  >
+                                    {userMap[u.srn] ?? u.srn}
+                                  </div>
+                                ))}
+                              </div>
+                              {users.length > 3 && (
+                                <button
+                                  onClick={() => toggleRankExpand(rankKey)}
+                                  className="text-xs sm:text-sm text-purple-400 hover:text-purple-300 mt-2 transition"
+                                >
+                                  {isExpanded
+                                    ? "Show less"
+                                    : `+${users.length - 3} more`}
+                                </button>
+                              )}
                             </div>
-                          )),
-                        )}
+                          );
+                        })}
                     </div>
                   </div>
                 ))}

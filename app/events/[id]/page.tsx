@@ -143,7 +143,7 @@ export default function EventPage() {
                   About the Event
                 </h2>
                 <div
-                  className="prose prose-invert max-w-none text-sm sm:text-base break-words overflow-x-hidden [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:my-4"
+                  className="prose prose-invert max-w-none text-sm sm:text-base wrap-break-word overflow-x-hidden [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:my-4"
                   dangerouslySetInnerHTML={{
                     __html: event.fullDescription,
                   }}

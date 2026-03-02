@@ -1,6 +1,7 @@
 "use client";
 
 import { useParams, notFound } from "next/navigation";
+import { useState } from "react";
 import Image from "next/image";
 import { Club, ClubDomain, DomainRank } from "@/lib/types/club";
 import Link from "next/link";
@@ -15,9 +16,22 @@ function slugify(text: string) {
 
 export default function ClubDomainPage() {
   const { id, domain } = useParams<{ id: string; domain: string }>();
+  const [expandedRanks, setExpandedRanks] = useState<Set<string>>(new Set());
 
   const { data: club, isLoading: clubLoading } = useClub(id);
   const { data: userMap = {} } = useDomainUserNames(club, domain);
+
+  const toggleRankExpand = (rankKey: string) => {
+    setExpandedRanks((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(rankKey)) {
+        newSet.delete(rankKey);
+      } else {
+        newSet.add(rankKey);
+      }
+      return newSet;
+    });
+  };
 
   if (clubLoading) {
     return (
@@ -142,27 +156,50 @@ export default function ClubDomainPage() {
 
           <div className="space-y-4 sm:space-y-6">
             <section className="rounded-xl sm:rounded-2xl border border-white/10 bg-white/5 backdrop-blur p-4 sm:p-5">
-              <h2 className="text-base sm:text-lg font-bold text-white mb-3">
+              <h2 className="text-base sm:text-lg font-bold text-white mb-4">
                 Domain Leads
               </h2>
 
               <div className="space-y-2">
                 {leads.length > 0 ? (
-                  leads.flatMap((rank: DomainRank) =>
-                    (rank.users ?? []).map((u) => (
-                      <div
-                        key={`${rank.name}-${u.srn}`}
-                        className="flex flex-wrap justify-between gap-2 text-xs sm:text-sm"
-                      >
-                        <span className="text-white truncate max-w-37.5 sm:max-w-50">
-                          {userMap[u.srn] ?? u.srn}
-                        </span>
-                        <span className="text-[#A3A3A3] shrink-0">
-                          {rank.name}
-                        </span>
-                      </div>
-                    )),
-                  )
+                  <div className="space-y-3">
+                    {leads.map((rank: DomainRank) => {
+                      const users = rank.users ?? [];
+                      const rankKey = `leads-${rank.name}`;
+                      const isExpanded = expandedRanks.has(rankKey);
+                      const displayUsers = isExpanded
+                        ? users
+                        : users.slice(0, 3);
+
+                      return (
+                        <div key={rankKey}>
+                          <h4 className="text-xs sm:text-sm text-[#A3A3A3] font-medium mb-2">
+                            {rank.name}
+                          </h4>
+                          <div className="space-y-1">
+                            {displayUsers.map((u) => (
+                              <div
+                                key={`${rank.name}-${u.srn}`}
+                                className="text-xs sm:text-sm text-white"
+                              >
+                                {userMap[u.srn] ?? u.srn}
+                              </div>
+                            ))}
+                          </div>
+                          {users.length > 3 && (
+                            <button
+                              onClick={() => toggleRankExpand(rankKey)}
+                              className="text-xs sm:text-sm text-purple-400 hover:text-purple-300 mt-2 transition"
+                            >
+                              {isExpanded
+                                ? "Show less"
+                                : `+${users.length - 3} more`}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 ) : (
                   <p className="text-xs sm:text-sm text-[#A3A3A3]">
                     No leads assigned
@@ -172,27 +209,50 @@ export default function ClubDomainPage() {
             </section>
 
             <section className="rounded-xl sm:rounded-2xl border border-white/10 bg-white/5 backdrop-blur p-4 sm:p-5">
-              <h2 className="text-base sm:text-lg font-bold text-white mb-3">
+              <h2 className="text-base sm:text-lg font-bold text-white mb-4">
                 Members
               </h2>
 
               <div className="space-y-2">
                 {members.length > 0 ? (
-                  members.flatMap((rank: DomainRank) =>
-                    (rank.users ?? []).map((u) => (
-                      <div
-                        key={`${rank.name}-${u.srn}`}
-                        className="flex flex-wrap justify-between gap-2 text-xs sm:text-sm opacity-90"
-                      >
-                        <span className="text-white truncate max-w-37.5 sm:max-w-50">
-                          {userMap[u.srn] ?? u.srn}
-                        </span>
-                        <span className="text-[#A3A3A3] shrink-0">
-                          {rank.name}
-                        </span>
-                      </div>
-                    )),
-                  )
+                  <div className="space-y-3">
+                    {members.map((rank: DomainRank) => {
+                      const users = rank.users ?? [];
+                      const rankKey = `members-${rank.name}`;
+                      const isExpanded = expandedRanks.has(rankKey);
+                      const displayUsers = isExpanded
+                        ? users
+                        : users.slice(0, 3);
+
+                      return (
+                        <div key={rankKey}>
+                          <h4 className="text-xs sm:text-sm text-[#A3A3A3] font-medium mb-2">
+                            {rank.name}
+                          </h4>
+                          <div className="space-y-1">
+                            {displayUsers.map((u) => (
+                              <div
+                                key={`${rank.name}-${u.srn}`}
+                                className="text-xs sm:text-sm text-white opacity-90"
+                              >
+                                {userMap[u.srn] ?? u.srn}
+                              </div>
+                            ))}
+                          </div>
+                          {users.length > 3 && (
+                            <button
+                              onClick={() => toggleRankExpand(rankKey)}
+                              className="text-xs sm:text-sm text-purple-400 hover:text-purple-300 mt-2 transition"
+                            >
+                              {isExpanded
+                                ? "Show less"
+                                : `+${users.length - 3} more`}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 ) : (
                   <p className="text-xs sm:text-sm text-[#A3A3A3]">
                     No members assigned
