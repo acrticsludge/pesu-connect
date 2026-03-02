@@ -109,15 +109,15 @@ export default function ClubPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10 md:py-14">
-        <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="space-y-6 sm:space-y-8">
+        <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr] min-w-0">
+          <div className="space-y-6 sm:space-y-8 min-w-0">
             {club.fullDescription && (
-              <section className="rounded-xl sm:rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-5 md:p-6">
+              <section className="rounded-xl sm:rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-5 md:p-6 min-w-0">
                 <h2 className="text-base sm:text-lg md:text-xl font-bold text-white mb-2 sm:mb-3">
                   About
                 </h2>
                 <div
-                  className="prose prose-invert max-w-none text-xs sm:text-sm md:text-base"
+                  className="prose prose-invert max-w-none text-xs sm:text-sm md:text-base break-words overflow-x-hidden [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:my-4"
                   dangerouslySetInnerHTML={{
                     __html: club.fullDescription,
                   }}

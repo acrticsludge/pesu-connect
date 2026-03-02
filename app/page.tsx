@@ -115,28 +115,16 @@ export default function Home() {
         </p>
 
         <div className="flex gap-3">
-          <button
-            onClick={() =>
-              upcomingRef.current?.scrollIntoView({
-                behavior: "smooth",
-                block: "start",
-              })
-            }
-            className="px-6 sm:px-7 py-3 bg-[#7C3AED] text-white rounded-full font-bold text-sm sm:text-lg active:scale-95"
-          >
-            Events
-          </button>
-          <button
-            onClick={() =>
-              clubRef.current?.scrollIntoView({
-                behavior: "smooth",
-                block: "start",
-              })
-            }
-            className="px-6 sm:px-7 py-3 bg-[#7C3AED] text-white rounded-full font-bold text-sm sm:text-lg active:scale-95"
-          >
-            Clubs
-          </button>
+          <Link href="/events">
+            <button className="px-6 sm:px-7 py-3 bg-[#7C3AED] text-white rounded-full font-bold text-sm sm:text-lg active:scale-95">
+              Events
+            </button>
+          </Link>
+          <Link href="/clubs">
+            <button className="px-6 sm:px-7 py-3 bg-[#7C3AED] text-white rounded-full font-bold text-sm sm:text-lg active:scale-95">
+              Clubs
+            </button>
+          </Link>
         </div>
       </div>
 

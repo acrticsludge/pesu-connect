@@ -120,3 +120,28 @@ html {
     transform: translateX(100%);
   }
 }
+
+/* Prose image constraints */
+.prose img,
+.prose-invert img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1rem 0;
+  border-radius: 0.5rem;
+}
+
+/* Ensure prose content doesn't overflow */
+.prose,
+.prose-invert {
+  overflow: hidden;
+  word-break: break-word;
+}
+
+/* Handle tables in prose */
+.prose table,
+.prose-invert table {
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
+}

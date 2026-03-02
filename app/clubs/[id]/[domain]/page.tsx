@@ -109,14 +109,14 @@ export default function ClubDomainPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10 md:py-14">
-        <div className="grid gap-6 sm:gap-8 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="space-y-4 sm:space-y-6">
+        <div className="grid gap-6 sm:gap-8 lg:grid-cols-[1.2fr_0.8fr] min-w-0">
+          <div className="space-y-4 sm:space-y-6 min-w-0">
             {activeDomain.description && (
-              <section className="rounded-xl sm:rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-5">
+              <section className="rounded-xl sm:rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-5 min-w-0">
                 <h2 className="text-base sm:text-lg md:text-xl font-bold text-white mb-2">
                   About This Domain
                 </h2>
-                <p className="text-xs sm:text-sm md:text-base text-[#A3A3A3] leading-relaxed">
+                <p className="text-xs sm:text-sm md:text-base text-[#A3A3A3] leading-relaxed break-words overflow-x-hidden">
                   {activeDomain.description}
                 </p>
               </section>

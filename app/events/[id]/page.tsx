@@ -135,15 +135,15 @@ export default function EventPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
-        <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="space-y-8">
+        <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr] min-w-0">
+          <div className="space-y-8 min-w-0">
             {event.fullDescription && (
-              <section>
+              <section className="min-w-0">
                 <h2 className="text-lg sm:text-xl font-bold text-white mb-2">
                   About the Event
                 </h2>
                 <div
-                  className="prose prose-invert max-w-none text-sm sm:text-base"
+                  className="prose prose-invert max-w-none text-sm sm:text-base break-words overflow-x-hidden [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:my-4"
                   dangerouslySetInnerHTML={{
                     __html: event.fullDescription,
                   }}
