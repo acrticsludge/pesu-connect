@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
 interface ClubRequest {
@@ -67,7 +67,7 @@ interface RequestDetailModalProps {
   onClose: () => void;
   isAdmin: boolean;
   onApprove?: (id: string) => void;
-  onReject?: (id: string) => void;
+  onReject?: (id: string, remark: string) => void;
   onConfirm?: (id: string) => void;
   isLoading?: boolean;
   formatDate: (date: string) => string;
@@ -85,6 +85,9 @@ export default function RequestDetailModal({
   isLoading = false,
   formatDate,
 }: RequestDetailModalProps) {
+  const [showRejectForm, setShowRejectForm] = useState(false);
+  const [rejectRemark, setRejectRemark] = useState("");
+
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -95,6 +98,13 @@ export default function RequestDetailModal({
     return () => {
       document.body.style.overflow = "unset";
     };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setShowRejectForm(false);
+      setRejectRemark("");
+    }
   }, [isOpen]);
 
   if (!isOpen || !request) return null;
@@ -417,20 +427,41 @@ export default function RequestDetailModal({
 
           {/* Action Buttons */}
           <div className="border-t border-white/10 p-4 sm:p-6 bg-white/5">
-            <div className="flex flex-col-reverse sm:flex-row gap-3">
-              <button
-                onClick={onClose}
-                disabled={isLoading}
-                className="px-4 py-2.5 rounded-lg bg-white/10 text-white font-medium hover:bg-white/20 transition active:scale-95 disabled:opacity-50"
-              >
-                Close
-              </button>
-
-              {isAdmin && request?.status === "pending" && (
-                <>
-                  <button
-                    onClick={() => onReject?.(request._id)}
+            {showRejectForm ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-white mb-2 block">
+                    Rejection Reason <span className="text-red-400">*</span>
+                  </label>
+                  <textarea
+                    value={rejectRemark}
+                    onChange={(e) => setRejectRemark(e.target.value)}
+                    placeholder="Please provide a reason for rejecting this request (visible to the user)..."
+                    className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white text-sm focus:border-purple-500/50 focus:outline-none resize-none"
+                    rows={4}
                     disabled={isLoading}
+                  />
+                </div>
+                <div className="flex flex-col-reverse sm:flex-row gap-3">
+                  <button
+                    onClick={() => {
+                      setShowRejectForm(false);
+                      setRejectRemark("");
+                    }}
+                    disabled={isLoading}
+                    className="px-4 py-2.5 rounded-lg bg-white/10 text-white font-medium hover:bg-white/20 transition active:scale-95 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!rejectRemark.trim()) {
+                        toast.error("Please provide a rejection reason");
+                        return;
+                      }
+                      onReject?.(request._id, rejectRemark);
+                    }}
+                    disabled={isLoading || !rejectRemark.trim()}
                     className="px-4 py-2.5 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {isLoading && (
@@ -454,73 +485,116 @@ export default function RequestDetailModal({
                         />
                       </svg>
                     )}
-                    Reject
+                    Confirm Rejection
                   </button>
-                  <button
-                    onClick={() => onApprove?.(request._id)}
-                    disabled={isLoading}
-                    className="px-4 py-2.5 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {isLoading && (
-                      <svg
-                        className="w-4 h-4 animate-spin"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        />
-                      </svg>
-                    )}
-                    Approve
-                  </button>
-                </>
-              )}
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col-reverse sm:flex-row gap-3">
+                <button
+                  onClick={onClose}
+                  disabled={isLoading}
+                  className="px-4 py-2.5 rounded-lg bg-white/10 text-white font-medium hover:bg-white/20 transition active:scale-95 disabled:opacity-50"
+                >
+                  Close
+                </button>
 
-              {!isAdmin &&
-                type === "club" &&
-                (request as ClubRequest).status === "approved" &&
-                onConfirm && (
-                  <button
-                    onClick={() => onConfirm(request._id)}
-                    disabled={isLoading}
-                    className="px-4 py-2.5 rounded-lg bg-purple-600 text-white font-medium hover:bg-purple-700 transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {isLoading && (
-                      <svg
-                        className="w-4 h-4 animate-spin"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        />
-                      </svg>
-                    )}
-                    Confirm Creation
-                  </button>
+                {isAdmin && request?.status === "pending" && (
+                  <>
+                    <button
+                      onClick={() => setShowRejectForm(true)}
+                      disabled={isLoading}
+                      className="px-4 py-2.5 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {isLoading && (
+                        <svg
+                          className="w-4 h-4 animate-spin"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          />
+                        </svg>
+                      )}
+                      Reject
+                    </button>
+                    <button
+                      onClick={() => onApprove?.(request._id)}
+                      disabled={isLoading}
+                      className="px-4 py-2.5 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {isLoading && (
+                        <svg
+                          className="w-4 h-4 animate-spin"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          />
+                        </svg>
+                      )}
+                      Approve
+                    </button>
+                  </>
                 )}
-            </div>
+
+                {!isAdmin &&
+                  type === "club" &&
+                  (request as ClubRequest).status === "approved" &&
+                  onConfirm && (
+                    <button
+                      onClick={() => onConfirm(request._id)}
+                      disabled={isLoading}
+                      className="px-4 py-2.5 rounded-lg bg-purple-600 text-white font-medium hover:bg-purple-700 transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {isLoading && (
+                        <svg
+                          className="w-4 h-4 animate-spin"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          />
+                        </svg>
+                      )}
+                      Confirm Creation
+                    </button>
+                  )}
+              </div>
+            )}
           </div>
         </div>
       </div>

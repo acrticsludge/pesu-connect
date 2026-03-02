@@ -276,13 +276,13 @@ export default function DashboardPage() {
     }
   };
 
-  const handleModalReject = async (id: string) => {
+  const handleModalReject = async (id: string, remark: string = "") => {
     setIsLoadingModal(true);
     try {
       if (modalType === "club") {
-        await handleAdminClubAction(id, "reject");
+        await handleAdminClubAction(id, "reject", remark);
       } else {
-        await handleAdminEventAction(id, "reject");
+        await handleAdminEventAction(id, "reject", remark);
       }
       setIsModalOpen(false);
       setSelectedRequest(null);
@@ -294,13 +294,14 @@ export default function DashboardPage() {
   const handleAdminClubAction = async (
     id: string,
     action: "approve" | "reject",
+    remark: string = "",
   ) => {
     const toastId = toast.loading(`${action}ing request...`);
     try {
       const res = await fetch(`/api/admin/club-requests/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, remark }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -318,11 +319,14 @@ export default function DashboardPage() {
   const handleAdminEventAction = async (
     id: string,
     action: "approve" | "reject",
+    remark: string = "",
   ) => {
     const toastId = toast.loading(`${action}ing request...`);
     try {
       const res = await fetch(`/api/admin/events/requests/${id}/${action}`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ remark }),
       });
       const data = await res.json();
       if (!res.ok) {
