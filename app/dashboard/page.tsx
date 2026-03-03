@@ -968,14 +968,14 @@ export default function DashboardPage() {
                 </p>
               </Link>
               <Link
-                href="/admin/users"
+                href="/dashboard/manage-users"
                 className="p-3 sm:p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition active:scale-[0.98]"
               >
                 <h3 className="text-sm sm:text-base font-semibold text-white">
                   Manage Users
                 </h3>
                 <p className="text-xs sm:text-sm text-white/60 mt-0.5 sm:mt-1">
-                  View and manage users
+                  Change roles, edit profiles, force logout
                 </p>
               </Link>
               <button

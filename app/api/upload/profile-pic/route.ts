@@ -52,13 +52,32 @@ export async function POST(req: Request) {
 
     await connectDB();
 
-    const user = await User.findById(payload.sub).lean();
-    if (!user) {
+    const currentUser = await User.findById(payload.sub).lean();
+    if (!currentUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
+    const targetUserId = formData.get("userId") as string | null;
+
+    // If userId is provided, check if current user is admin
+    let targetUser = currentUser;
+    if (targetUserId && targetUserId !== payload.sub) {
+      if (currentUser.role !== "admin") {
+        return NextResponse.json(
+          { error: "Only admins can update other users' profile pictures" },
+          { status: 403 },
+        );
+      }
+      targetUser = await User.findById(targetUserId).lean();
+      if (!targetUser) {
+        return NextResponse.json(
+          { error: "Target user not found" },
+          { status: 404 },
+        );
+      }
+    }
 
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
@@ -83,9 +102,11 @@ export async function POST(req: Request) {
     const base64 = buffer.toString("base64");
     const dataURI = `data:${file.type};base64,${base64}`;
 
-    if (user.profilePic) {
+    if (targetUser.profilePic) {
       try {
-        const publicIdMatch = user.profilePic.match(/profile-pics\/([^/.]+)/);
+        const publicIdMatch = targetUser.profilePic.match(
+          /profile-pics\/([^/.]+)/,
+        );
         if (publicIdMatch) {
           await cloudinary.uploader.destroy(publicIdMatch[0]);
         }
@@ -96,7 +117,7 @@ export async function POST(req: Request) {
 
     const result = await cloudinary.uploader.upload(dataURI, {
       folder: "profile-pics",
-      public_id: `${user.srn}-${Date.now()}`,
+      public_id: `${targetUser.srn}-${Date.now()}`,
       transformation: [
         { width: 400, height: 400, crop: "fill", gravity: "face" },
         { quality: "auto:good" },
@@ -105,7 +126,7 @@ export async function POST(req: Request) {
     });
 
     await User.updateOne(
-      { _id: user._id },
+      { _id: targetUser._id },
       { $set: { profilePic: result.secure_url } },
     );
 
