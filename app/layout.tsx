@@ -5,6 +5,8 @@ import { Toaster } from "react-hot-toast";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { Analytics } from "@vercel/analytics/react";
 import Script from "next/script";
+import Link from "next/link";
+import { Book, MessageCircle } from "lucide-react";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -110,7 +112,6 @@ export default function RootLayout({
         />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        {/* <link rel="manifest" href="/manifest.json" /> */}
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white min-h-screen`}
@@ -120,6 +121,33 @@ export default function RootLayout({
             <NavBar />
           </div>
           <main className="pt-24 pb-2 min-h-screen">{children}</main>
+
+          <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-50">
+            <Link
+              href="https://github.com/acrticsludge/pesu-connect/wiki"
+              target="_blank"
+              className="group relative flex items-center justify-center w-12 h-12 bg-purple-600 hover:bg-purple-700 text-white rounded-full shadow-lg transition-all duration-200 hover:scale-110"
+              aria-label="Wiki"
+            >
+              <Book className="w-5 h-5" />
+              <span className="absolute right-full mr-3 px-3 py-1 bg-gray-900 text-white text-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap border border-gray-800 shadow-lg">
+                Wiki
+              </span>
+            </Link>
+
+            <Link
+              href="https://docs.google.com/forms/d/e/1FAIpQLSeCTzYaeX9bvw83sEkOr3YaGCG3H0U2CFIJPfuYyyMryIwSHA/viewform?usp=header"
+              target="_blank"
+              className="group relative flex items-center justify-center w-12 h-12 bg-purple-600 hover:bg-purple-700 text-white rounded-full shadow-lg transition-all duration-200 hover:scale-110"
+              aria-label="Feedback"
+            >
+              <MessageCircle className="w-5 h-5" />
+              <span className="absolute right-full mr-3 px-3 py-1 bg-gray-900 text-white text-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap border border-gray-800 shadow-lg">
+                Feedback
+              </span>
+            </Link>
+          </div>
+
           <Toaster
             position="top-right"
             toastOptions={{
