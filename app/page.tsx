@@ -2,12 +2,35 @@
 
 import { useRef, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import EventCard from "./Cards/EventCards/EventCard";
 import ClubCard from "./Cards/ClubCards/ClubCard";
 import { BaseEventData, EventTag } from "@/lib/types/event";
 import { useEvents } from "@/lib/hooks/useEvents";
 import { useClubs } from "@/lib/hooks/useClubs";
 import { useDragScroll } from "@/lib/hooks/useDragScroll";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.6,
+    },
+  },
+};
 
 export default function Home() {
   const upcomingRef = useRef<HTMLDivElement>(null);
@@ -81,191 +104,266 @@ export default function Home() {
 
   if (eventsError || clubsError) {
     return (
-      <div className="flex items-center justify-center min-h-screen p-4">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex items-center justify-center min-h-screen p-4"
+      >
         <div className="text-center">
           <p className="text-red-500 mb-4 text-lg">Failed to load content</p>
           <button
             onClick={() => window.location.reload()}
-            className="px-6 py-3 bg-purple-600 text-white rounded-lg active:scale-95"
+            className="px-6 py-3 bg-purple-600 text-white rounded-lg active:scale-95 hover:bg-purple-700 transition-colors"
           >
             Try Again
           </button>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   return (
     <div className="min-h-screen bg-black">
-      <div className="flex flex-col items-center justify-center pt-12 sm:pt-16 px-4 text-center pb-20 sm:pb-24">
-        <span className="px-4 py-2 bg-[#7C3AED]/20 border border-[#7C3AED]/30 rounded-full text-[#CCFF00] text-xs sm:text-sm font-mono font-medium mb-4">
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="flex flex-col items-center justify-center pt-12 sm:pt-16 px-4 text-center pb-20 sm:pb-24"
+      >
+        <motion.span
+          variants={itemVariants}
+          className="px-4 py-2 bg-[#7C3AED]/20 border border-[#7C3AED]/30 rounded-full text-[#CCFF00] text-xs sm:text-sm font-mono font-medium mb-4"
+        >
           PES University Events Portal
-        </span>
+        </motion.span>
 
-        <h1 className="text-3xl sm:text-5xl lg:text-7xl font-bold text-white">
+        <motion.h1
+          variants={itemVariants}
+          className="text-3xl sm:text-5xl lg:text-7xl font-bold text-white"
+        >
           Discover Campus
-        </h1>
-        <h2 className="text-3xl sm:text-5xl lg:text-7xl font-bold text-[#7C3AED] mb-6">
+        </motion.h1>
+        <motion.h2
+          variants={itemVariants}
+          className="text-3xl sm:text-5xl lg:text-7xl font-bold text-[#7C3AED] mb-6"
+        >
           Events & Activities
-        </h2>
+        </motion.h2>
 
-        <p className="text-sm sm:text-lg text-[#A3A3A3] max-w-3xl mx-auto mb-8 sm:mb-10 px-4">
+        <motion.p
+          variants={itemVariants}
+          className="text-sm sm:text-lg text-[#A3A3A3] max-w-3xl mx-auto mb-8 sm:mb-10 px-4"
+        >
           Stay updated with all college events, club activities, and
           competitions in one place.
-        </p>
+        </motion.p>
 
-        <div className="flex gap-3">
+        <motion.div variants={itemVariants} className="flex gap-3">
           <Link href="/events">
-            <button className="px-6 sm:px-7 py-3 bg-[#7C3AED] text-white rounded-full font-bold text-sm sm:text-lg active:scale-95">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="px-6 sm:px-7 py-3 bg-[#7C3AED] text-white rounded-full font-bold text-sm sm:text-lg hover:bg-[#6D28D9] transition-colors"
+            >
               Events
-            </button>
+            </motion.button>
           </Link>
           <Link href="/clubs">
-            <button className="px-6 sm:px-7 py-3 bg-[#7C3AED] text-white rounded-full font-bold text-sm sm:text-lg active:scale-95">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="px-6 sm:px-7 py-3 bg-[#7C3AED] text-white rounded-full font-bold text-sm sm:text-lg hover:bg-[#6D28D9] transition-colors"
+            >
               Clubs
-            </button>
+            </motion.button>
           </Link>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       <div ref={upcomingRef} className="py-10 sm:py-16 scroll-mt-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between mb-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="flex items-center justify-between mb-6"
+          >
             <h2 className="text-2xl sm:text-3xl font-bold text-white">
               Upcoming Events
             </h2>
             <Link
               href="/events"
-              className="text-sm text-purple-400 active:text-purple-300"
+              className="text-sm text-purple-400 hover:text-purple-300 transition-colors"
             >
               View all →
             </Link>
-          </div>
+          </motion.div>
 
-          <div className="flex gap-2 pb-3 overflow-x-auto sm:overflow-visible flex-nowrap sm:flex-wrap sm:justify-end no-scrollbar">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="flex gap-2 pb-3 overflow-x-auto sm:overflow-visible flex-nowrap sm:flex-wrap sm:justify-end no-scrollbar"
+          >
             {filterOptions.map((filter) => (
-              <button
+              <motion.button
                 key={filter}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveFilter(filter)}
-                className={`px-4 py-2 rounded-full text-sm whitespace-nowrap active:scale-95 ${
+                className={`px-4 py-2 rounded-full text-sm whitespace-nowrap transition-all ${
                   activeFilter === filter
-                    ? "bg-[#7C3AED] text-white"
-                    : "bg-[#0A0A0A] border border-white/10 text-[#A3A3A3]"
+                    ? "bg-[#7C3AED] text-white shadow-lg shadow-[#7C3AED]/50"
+                    : "bg-[#0A0A0A] border border-white/10 text-[#A3A3A3] hover:border-white/20"
                 }`}
               >
                 {filter === "all"
                   ? "All Events"
                   : filter.charAt(0).toUpperCase() +
                     filter.slice(1).toLowerCase()}
-              </button>
+              </motion.button>
             ))}
-          </div>
+          </motion.div>
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
           <div className="absolute left-0 top-0 bottom-0 w-12 bg-linear-to-r from-black to-transparent z-10 pointer-events-none" />
           <div className="absolute right-0 top-0 bottom-0 w-12 bg-linear-to-l from-black to-transparent z-10 pointer-events-none" />
 
-          <button
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => scrollBy(eventsScrollRef, -300)}
-            className="hidden sm:flex absolute -left-5 top-1/2 -translate-y-1/2 z-20 h-10 w-10 items-center justify-center rounded-full bg-black/70 text-white active:scale-90"
+            className="hidden sm:flex absolute -left-5 top-1/2 -translate-y-1/2 z-20 h-10 w-10 items-center justify-center rounded-full bg-black/70 hover:bg-purple-600/50 text-white transition-colors"
             aria-label="Scroll left"
           >
             ‹
-          </button>
+          </motion.button>
 
           <div
             ref={eventsScrollRef}
             className="flex items-stretch gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory py-8 no-scrollbar"
           >
             {eventsLoading ? (
-              <div className="text-white/50 text-sm py-8 px-4">
+              <motion.div
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="text-white/50 text-sm py-8 px-4"
+              >
                 Loading events…
-              </div>
+              </motion.div>
             ) : sortedEvents.length === 0 ? (
               <div className="text-white/50 flex items-center justify-center text-xl py-8 w-full">
                 No upcoming events...
               </div>
             ) : (
-              sortedEvents.map((event) => (
-                <div
+              sortedEvents.map((event, index) => (
+                <motion.div
                   key={event._id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1, duration: 0.5 }}
                   className="snap-start shrink-0 w-[85%] sm:w-80 md:w-90 lg:w-95"
                 >
                   <Link href={`/events/${event._id}`} className="block h-full">
                     <EventCard event={event} />
                   </Link>
-                </div>
+                </motion.div>
               ))
             )}
           </div>
 
-          <button
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => scrollBy(eventsScrollRef, 300)}
-            className="hidden sm:flex absolute -right-5 top-1/2 -translate-y-1/2 z-20 h-10 w-10 items-center justify-center rounded-full bg-black/70 text-white active:scale-90"
+            className="hidden sm:flex absolute -right-5 top-1/2 -translate-y-1/2 z-20 h-10 w-10 items-center justify-center rounded-full bg-black/70 hover:bg-purple-600/50 text-white transition-colors"
             aria-label="Scroll right"
           >
             ›
-          </button>
+          </motion.button>
         </div>
       </div>
 
       <div ref={clubRef} className="py-10 sm:py-16 scroll-mt-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 mb-6 flex items-center justify-between">
-          <h2 className="text-2xl sm:text-3xl font-bold text-white">Clubs</h2>
-          <Link
-            href="/clubs"
-            className="text-sm text-purple-400 active:text-purple-300"
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 mb-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="flex items-center justify-between"
           >
-            View all →
-          </Link>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white">Clubs</h2>
+            <Link
+              href="/clubs"
+              className="text-sm text-purple-400 hover:text-purple-300 transition-colors"
+            >
+              View all →
+            </Link>
+          </motion.div>
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
           <div className="absolute left-0 top-0 bottom-0 w-12 bg-linear-to-r from-black to-transparent z-10 pointer-events-none" />
           <div className="absolute right-0 top-0 bottom-0 w-12 bg-linear-to-l from-black to-transparent z-10 pointer-events-none" />
 
-          <button
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => scrollBy(clubsScrollRef, -300)}
-            className="hidden sm:flex absolute -left-5 top-1/2 -translate-y-1/2 z-20 h-10 w-10 items-center justify-center rounded-full bg-black/70 text-white active:scale-90"
+            className="hidden sm:flex absolute -left-5 top-1/2 -translate-y-1/2 z-20 h-10 w-10 items-center justify-center rounded-full bg-black/70 hover:bg-purple-600/50 text-white transition-colors"
             aria-label="Scroll left"
           >
             ‹
-          </button>
+          </motion.button>
 
           <div
             ref={clubsScrollRef}
             className="flex items-stretch gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory py-12 no-scrollbar"
           >
             {clubsLoading ? (
-              <div className="text-white/50 text-sm py-8 px-4">
+              <motion.div
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="text-white/50 text-sm py-8 px-4"
+              >
                 Loading clubs…
-              </div>
+              </motion.div>
             ) : sortedClubs.length === 0 ? (
               <div className="text-white/50 flex items-center justify-center text-xl py-8 w-full">
                 No clubs to display...
               </div>
             ) : (
-              sortedClubs.map((club) => (
-                <div
+              sortedClubs.map((club, index) => (
+                <motion.div
                   key={club._id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1, duration: 0.5 }}
                   className="snap-start shrink-0 w-[85%] sm:w-80 md:w-90 lg:w-95"
                 >
                   <Link href={`/clubs/${club._id}`} className="block h-full">
                     <ClubCard club={club} />
                   </Link>
-                </div>
+                </motion.div>
               ))
             )}
           </div>
 
-          <button
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => scrollBy(clubsScrollRef, 300)}
-            className="hidden sm:flex absolute -right-5 top-1/2 -translate-y-1/2 z-20 h-10 w-10 items-center justify-center rounded-full bg-black/70 text-white active:scale-90"
+            className="hidden sm:flex absolute -right-5 top-1/2 -translate-y-1/2 z-20 h-10 w-10 items-center justify-center rounded-full bg-black/70 hover:bg-purple-600/50 text-white transition-colors"
             aria-label="Scroll right"
           >
             ›
-          </button>
+          </motion.button>
         </div>
       </div>
     </div>

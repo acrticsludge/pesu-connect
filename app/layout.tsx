@@ -98,11 +98,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark scroll-smooth">
       <head>
         <meta
           name="viewport"
-          content="width=device-width, initial-scale=1, maximum-scale=5"
+          content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover"
         />
         <meta name="theme-color" content="#7C3AED" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -110,8 +110,17 @@ export default function RootLayout({
           name="apple-mobile-web-app-status-bar-style"
           content="black-translucent"
         />
+        <meta name="apple-mobile-web-app-title" content="PESU Connect" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        {/* Preconnect to external resources */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        <link rel="dns-prefetch" href="https://res.cloudinary.com" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white min-h-screen`}
@@ -126,6 +135,7 @@ export default function RootLayout({
             <Link
               href="https://github.com/acrticsludge/pesu-connect/wiki"
               target="_blank"
+              rel="noopener noreferrer"
               className="group relative flex items-center justify-center w-12 h-12 bg-purple-600 hover:bg-purple-700 text-white rounded-full shadow-lg transition-all duration-200 hover:scale-110"
               aria-label="Wiki"
             >
@@ -138,6 +148,7 @@ export default function RootLayout({
             <Link
               href="https://docs.google.com/forms/d/e/1FAIpQLSeCTzYaeX9bvw83sEkOr3YaGCG3H0U2CFIJPfuYyyMryIwSHA/viewform?usp=header"
               target="_blank"
+              rel="noopener noreferrer"
               className="group relative flex items-center justify-center w-12 h-12 bg-purple-600 hover:bg-purple-700 text-white rounded-full shadow-lg transition-all duration-200 hover:scale-110"
               aria-label="Feedback"
             >
